@@ -153,13 +153,11 @@ st.markdown(
     """
     <style>
     #MainMenu, header, footer {visibility: hidden;}
-    html, body {height: 100%; margin: 0; padding: 0; overflow: hidden;}
-    .stApp {background: #eef1f5; height: 100vh; overflow: hidden;}
+    html, body {height: 100%; margin: 0; padding: 0;}
+    .stApp {background: #eef1f5; min-height: 100vh; overflow-y: auto; overflow-x: hidden;}
     .block-container {
         padding: 0 !important;
         max-width: 100% !important;
-        height: 100vh;
-        overflow: hidden;
     }
     /* tighten (but don't fully zero) Streamlit's default inter-widget
        spacing — zeroing it entirely collapses each widget's own internal
@@ -213,7 +211,7 @@ st.markdown(
             radial-gradient(circle at 88% 15%, rgba(124,79,224,0.35) 0%, rgba(124,79,224,0) 45%),
             radial-gradient(circle at 8% 100%, rgba(255,153,0,0.25) 0%, rgba(255,153,0,0) 40%),
             linear-gradient(120deg, #0b1524 0%, #14273e 45%, #223f5f 100%);
-        padding: 20px 40px 18px 40px;
+        padding: 14px 40px 12px 40px;
         overflow: hidden;
     }
     .hero-flex {display: flex; justify-content: space-between; align-items: center; gap: 20px;}
@@ -278,7 +276,7 @@ st.markdown(
     /* ---------- Hero decorative visual ---------- */
     .hero-visual {
         position: relative;
-        width: 250px; height: 190px;
+        width: 220px; height: 150px;
         flex-shrink: 0;
         display: flex; align-items: center; justify-content: center;
     }
@@ -289,49 +287,49 @@ st.markdown(
     .hero-visual .blob.b2 {width: 70px; height: 70px; background: #2f6fed; bottom: -14px; left: 0; opacity: 0.35;}
     .mock-card {
         position: relative; z-index: 2;
-        width: 190px; height: 130px;
+        width: 165px; height: 108px;
         background: #ffffff;
         border-radius: 12px;
         box-shadow: 0 18px 34px rgba(0,0,0,0.4);
-        padding: 10px 12px;
+        padding: 8px 10px;
         transform: rotate(-3deg);
     }
     .mock-card .mc-logo {
         font-style: italic; font-weight: 800; color: #131921; font-size: 0.75rem; margin-bottom: 6px;
     }
     .mock-card .mc-logo::after {content:"⌣"; color:#ff9900; margin-left:1px;}
-    .mock-bars {display: flex; align-items: flex-end; gap: 4px; height: 42px; margin-bottom: 6px;}
+    .mock-bars {display: flex; align-items: flex-end; gap: 3px; height: 32px; margin-bottom: 5px;}
     .mock-bars div {width: 8px; border-radius: 2px 2px 0 0; background: linear-gradient(180deg,#5fa3f7,#2f6fed);}
     .mock-donut {
-        position: absolute; right: 10px; top: 34px; width: 36px; height: 36px; border-radius: 50%;
+        position: absolute; right: 8px; top: 24px; width: 28px; height: 28px; border-radius: 50%;
         background: conic-gradient(#ff9900 0deg 130deg, #2f6fed 130deg 260deg, #33cb95 260deg 360deg);
     }
     .mock-donut::after {
-        content: ""; position: absolute; inset: 7px; border-radius: 50%; background: #ffffff;
+        content: ""; position: absolute; inset: 5px; border-radius: 50%; background: #ffffff;
     }
-    .mock-lines div {height: 5px; border-radius: 3px; background: #e3e8ef; margin-bottom: 4px;}
+    .mock-lines div {height: 4px; border-radius: 3px; background: #e3e8ef; margin-bottom: 3px;}
     .mock-lines div:nth-child(1) {width: 70%;}
     .mock-lines div:nth-child(2) {width: 45%;}
     .mock-xlsx {
-        position: absolute; z-index: 3; right: -14px; bottom: -10px;
-        width: 42px; height: 42px; border-radius: 9px;
+        position: absolute; z-index: 3; right: -12px; bottom: -8px;
+        width: 34px; height: 34px; border-radius: 8px;
         background: linear-gradient(160deg,#1f8f4e,#0f6b37);
         display: flex; align-items: center; justify-content: center;
-        color: #fff; font-weight: 800; font-size: 1rem;
+        color: #fff; font-weight: 800; font-size: 0.85rem;
         box-shadow: 0 10px 18px rgba(0,0,0,0.35);
         transform: rotate(6deg);
     }
     .hero-visual .quip {
-        position: absolute; top: -18px; right: -6px;
-        font-style: italic; font-weight: 600; font-size: 0.68rem;
-        color: #cdd8e8; line-height: 1.25; text-align: right; width: 130px;
+        position: absolute; top: -14px; right: -6px;
+        font-style: italic; font-weight: 600; font-size: 0.62rem;
+        color: #cdd8e8; line-height: 1.2; text-align: right; width: 120px;
     }
     .hero-visual .quip b {color: #ffb54d;}
 
     /* ---------- Content section ---------- */
     .amz-content {
         position: relative;
-        padding: 16px 40px 6px 40px;
+        padding: 10px 40px 4px 40px;
         overflow: hidden;
     }
     .amz-content .cblob {position: absolute; border-radius: 50%; filter: blur(30px); z-index: 0;}
@@ -454,10 +452,90 @@ st.markdown(
         color: #6b7280; font-size: 0.72rem;
     }
     .amz-footer span {display: flex; align-items: center; gap: 5px;}
+    @media (max-height: 760px) {
+        .amz-footer {display: none;}
+    }
+
+    /* ---------- Lock screen ---------- */
+    .lock-screen {
+        position: relative;
+        height: 100vh;
+        background:
+            radial-gradient(circle at 85% 20%, rgba(124,79,224,0.35) 0%, rgba(124,79,224,0) 45%),
+            radial-gradient(circle at 10% 90%, rgba(255,153,0,0.25) 0%, rgba(255,153,0,0) 40%),
+            linear-gradient(120deg, #0b1524 0%, #14273e 45%, #223f5f 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .lock-screen::before {
+        content: "";
+        position: absolute; inset: 0;
+        backdrop-filter: blur(6px);
+        background: rgba(10,16,28,0.25);
+    }
+    .lock-card-outer {
+        position: relative; z-index: 2;
+        width: 320px;
+        background: rgba(255,255,255,0.97);
+        border-radius: 16px;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+        padding: 30px 26px 18px 26px;
+        text-align: center;
+    }
+    .lock-icon {
+        width: 46px; height: 46px;
+        margin: 0 auto 12px auto;
+        border-radius: 50%;
+        background: linear-gradient(135deg,#ffb230,#ff8a00);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem;
+        box-shadow: 0 6px 14px rgba(255,153,0,0.4);
+    }
+    .lock-title {color: #131921; font-weight: 800; font-size: 1.15rem; margin-bottom: 4px;}
+    .lock-sub {color: #6b7280; font-size: 0.8rem; margin-bottom: 16px;}
+    .lock-card-outer div[data-testid="stTextInput"] input {
+        border-radius: 8px !important;
+        border: 1px solid #d7dde5 !important;
+        padding: 8px 12px !important;
+        font-size: 0.9rem !important;
+        text-align: center;
+        background: #fafbfd !important;
+    }
+    .lock-error {color: #e0384c; font-size: 0.78rem; margin-top: 8px;}
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+# =========================================================================
+# ACCESS GATE — simple shared-code lock, no username/password
+# =========================================================================
+if "unlocked" not in st.session_state:
+    st.session_state.unlocked = False
+
+if not st.session_state.unlocked:
+    st.markdown('<div class="lock-screen"><div class="lock-card-outer">', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="lock-icon">🔒</div>
+        <div class="lock-title">DWD Tool</div>
+        <div class="lock-sub">Enter the access code to continue</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    entered_code = st.text_input(
+        "Access code", placeholder="Access code", label_visibility="collapsed", key="access_code_input"
+    )
+    if entered_code:
+        if entered_code.strip().lower() == "javmuhak":
+            st.session_state.unlocked = True
+            st.rerun()
+        else:
+            st.markdown('<div class="lock-error">Incorrect code</div>', unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.stop()
+
 
 # --- Navbar ---------------------------------------------------------------
 st.markdown(
