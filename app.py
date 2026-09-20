@@ -159,11 +159,8 @@ st.markdown(
         padding: 0 !important;
         max-width: 100% !important;
     }
-    /* tighten (but don't fully zero) Streamlit's default inter-widget
-       spacing — zeroing it entirely collapses each widget's own internal
-       reserved space and makes them overlap the text above them */
-    div[data-testid="stVerticalBlock"] {gap: 0.3rem !important;}
-    div[data-testid="element-container"] {margin-bottom: 0.15rem !important;}
+    div[data-testid="stVerticalBlock"] {gap: 0.2rem !important;}
+    div[data-testid="element-container"] {margin-bottom: 0.1rem !important;}
     div[data-testid="stAppViewBlockContainer"] {padding: 0 !important;}
 
     /* ---------- Top navbar ---------- */
@@ -458,21 +455,18 @@ st.markdown(
 
     /* ---------- Lock screen ---------- */
     .lock-screen {
-        position: relative;
-        height: 100vh;
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
         background:
             radial-gradient(circle at 85% 20%, rgba(124,79,224,0.35) 0%, rgba(124,79,224,0) 45%),
             radial-gradient(circle at 10% 90%, rgba(255,153,0,0.25) 0%, rgba(255,153,0,0) 40%),
             linear-gradient(120deg, #0b1524 0%, #14273e 45%, #223f5f 100%);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-    .lock-screen::before {
-        content: "";
-        position: absolute; inset: 0;
-        backdrop-filter: blur(6px);
-        background: rgba(10,16,28,0.25);
     }
     .lock-card-outer {
         position: relative; z-index: 2;
@@ -509,7 +503,7 @@ st.markdown(
 )
 
 # =========================================================================
-# ACCESS GATE — simple shared-code lock, no username/password
+# ACCESS GATE — simple shared-code lock, blurred background screen
 # =========================================================================
 if "unlocked" not in st.session_state:
     st.session_state.unlocked = False
@@ -525,7 +519,7 @@ if not st.session_state.unlocked:
         unsafe_allow_html=True,
     )
     entered_code = st.text_input(
-        "Access code", placeholder="Access code", label_visibility="collapsed", key="access_code_input"
+        "Access code", placeholder="Access code", label_visibility="collapsed", key="access_code_input", type="password"
     )
     if entered_code:
         if entered_code.strip().lower() == "javmuhak":
