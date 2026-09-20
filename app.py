@@ -3,7 +3,7 @@ DWD Tool
 ========
 A Streamlit app that automates daily attendance ("DWD") report generation
 for warehouse operations, styled as a polished Amazon Seller Tools page.
-Fits a single viewport cleanly with password lock.
+Fits a single viewport cleanly.
 """
 
 import io
@@ -452,91 +452,10 @@ st.markdown(
     @media (max-height: 760px) {
         .amz-footer {display: none;}
     }
-
-    /* ---------- Lock screen ---------- */
-    .lock-screen {
-        position: fixed;
-        inset: 0;
-        z-index: 999999;
-        background:
-            radial-gradient(circle at 85% 20%, rgba(124,79,224,0.35) 0%, rgba(124,79,224,0) 45%),
-            radial-gradient(circle at 10% 90%, rgba(255,153,0,0.25) 0%, rgba(255,153,0,0) 40%),
-            linear-gradient(120deg, #0b1524 0%, #14273e 45%, #223f5f 100%);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .lock-card-outer {
-        position: relative; z-index: 2;
-        width: 320px;
-        background: rgba(255,255,255,0.97);
-        border-radius: 16px;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.45);
-        padding: 30px 26px 18px 26px;
-        text-align: center;
-    }
-    .lock-icon {
-        width: 46px; height: 46px;
-        margin: 0 auto 12px auto;
-        border-radius: 50%;
-        background: linear-gradient(135deg,#ffb230,#ff8a00);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.3rem;
-        box-shadow: 0 6px 14px rgba(255,153,0,0.4);
-    }
-    .lock-title {color: #131921; font-weight: 800; font-size: 1.15rem; margin-bottom: 4px;}
-    .lock-sub {color: #6b7280; font-size: 0.8rem; margin-bottom: 16px;}
-    
-    /* Fixed text input styling so typed characters are clearly visible */
-    .lock-card-outer div[data-testid="stTextInput"] {
-        width: 100% !important;
-    }
-    .lock-card-outer div[data-testid="stTextInput"] input {
-        border-radius: 8px !important;
-        border: 1px solid #d7dde5 !important;
-        padding: 8px 12px !important;
-        font-size: 0.95rem !important;
-        text-align: center !important;
-        background: #fafbfd !important;
-        color: #131921 !important;
-        -webkit-text-fill-color: #131921 !important;
-    }
-    .lock-error {color: #e0384c; font-size: 0.78rem; margin-top: 8px;}
     </style>
     """,
     unsafe_allow_html=True,
 )
-
-# =========================================================================
-# ACCESS GATE — simple shared-code lock, blurred background screen
-# =========================================================================
-if "unlocked" not in st.session_state:
-    st.session_state.unlocked = False
-
-if not st.session_state.unlocked:
-    st.markdown('<div class="lock-screen"><div class="lock-card-outer">', unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div class="lock-icon">🔒</div>
-        <div class="lock-title">DWD Tool</div>
-        <div class="lock-sub">Enter the access code to continue</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    entered_code = st.text_input(
-        "Access code", placeholder="Enter access code", label_visibility="collapsed", key="access_code_input", type="password"
-    )
-    if entered_code:
-        if entered_code.strip().lower() == "javmuhak":
-            st.session_state.unlocked = True
-            st.rerun()
-        else:
-            st.markdown('<div class="lock-error">Incorrect code</div>', unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
-    st.stop()
-
 
 # --- Navbar ---------------------------------------------------------------
 st.markdown(
