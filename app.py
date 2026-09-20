@@ -26,16 +26,11 @@ SHEET_ROSTER = "Roster"
 COL_EMP_ID = "EmpID"
 COL_DATE = "Date"
 COL_PRESENT_STATUS = "present_status"
-COL_GB_LEAVE = "gb_leave_type"
-COL_TIME_OFF = "time_off_type"
 COL_IS_OVERTIME = "is_overtime"
 
 # Attendance codes as expected by the Dashboard formulas
 CODE_PRESENT = "P"
 CODE_OT = "OT"
-CODE_PL = "PL"
-CODE_ABWI = "ABWI"
-CODE_SL = "SL"
 CODE_ZERO = "0"
 
 # Roster sheet layout based on Blank file.xlsx
@@ -64,23 +59,13 @@ def fetch_template_bytes(url: str, token: str) -> bytes:
 def compute_attendance_code(row: pd.Series) -> str:
     """
     Business rules for attendance:
-    - Handle PL, SL, ABWI
+    - PL, ABWI, and SL are exempted/ignored (bypassed).
     - If present on scheduled shift -> P
     - If present on week off -> OT
     - Otherwise -> 0
     """
     present_status = str(row.get(COL_PRESENT_STATUS, "")).strip().lower()
-    gb_leave = str(row.get(COL_GB_LEAVE, "")).strip().lower()
-    time_off = str(row.get(COL_TIME_OFF, "")).strip().lower()
     is_ot = row.get(COL_IS_OVERTIME, 0)
-
-    # Check leaves / exclusions
-    if "annual leave" in gb_leave or "pl" in time_off or "planned" in time_off:
-        return CODE_PL
-    if "sick" in gb_leave:
-        return CODE_SL
-    if "loss of pay" in gb_leave:
-        return CODE_ABWI
 
     is_present = present_status == "present"
     
@@ -202,18 +187,18 @@ if uploaded_file is not None:
     try:
         raw_df = pd.read_csv(uploaded_file)
     except Exception as e:
-        st.error(f"Raw CSV file parhne mein masla aaya: {e}")
+        st.error(f"Error reading raw CSV file: {e}")
         st.stop()
 
-    with st.spinner("Template fetch ho raha hai aur DWD report ban rahi hai..."):
+    with st.spinner("Fetching template from GitHub and generating DWD report..."):
         try:
             template_bytes = fetch_template_bytes(TEMPLATE_GITHUB_URL, GITHUB_TOKEN)
             report_bytes, report_date = build_report(raw_df, template_bytes)
         except Exception as e:
-            st.error(f"Report banane mein error aya: {e}")
+            st.error(f"Failed to generate report: {e}")
             st.stop()
 
-    st.success("DWD Report kamyabi ke sath tayar ho gayi hai!")
+    st.success("DWD Report generated successfully!")
     st.download_button(
         "Download File",
         data=report_bytes,
