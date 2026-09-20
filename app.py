@@ -40,8 +40,8 @@ CODE_ZERO = "0"
 # Roster sheet layout based on Blank file.xlsx
 ROSTER_HEADER_DATE_CELL = "B1"
 ROSTER_HEADER_DAY_CELL = "C1"
-ROSTER_ID_COLUMN = "B"             # PsoftNo column in Roster sheet
-ROSTER_FIRST_DATA_ROW = 7          # First employee row in Roster sheet
+ROSTER_ID_COLUMN = "B"           # PsoftNo column in Roster sheet
+ROSTER_FIRST_DATA_ROW = 7        # First employee row in Roster sheet
 ROSTER_ATTENDANCE_COLUMN = "T"     # Attendance column in Roster sheet
 ROSTER_REMARKS_COLUMN = "U"        # Remarks column in Roster sheet
 ROSTER_OFF1_COLUMN = "L"           # OFF1 column in Roster sheet
@@ -488,13 +488,20 @@ st.markdown(
     }
     .lock-title {color: #131921; font-weight: 800; font-size: 1.15rem; margin-bottom: 4px;}
     .lock-sub {color: #6b7280; font-size: 0.8rem; margin-bottom: 16px;}
+    
+    /* Fixed text input styling so typed characters are clearly visible */
+    .lock-card-outer div[data-testid="stTextInput"] {
+        width: 100% !important;
+    }
     .lock-card-outer div[data-testid="stTextInput"] input {
         border-radius: 8px !important;
         border: 1px solid #d7dde5 !important;
         padding: 8px 12px !important;
-        font-size: 0.9rem !important;
-        text-align: center;
+        font-size: 0.95rem !important;
+        text-align: center !important;
         background: #fafbfd !important;
+        color: #131921 !important;
+        -webkit-text-fill-color: #131921 !important;
     }
     .lock-error {color: #e0384c; font-size: 0.78rem; margin-top: 8px;}
     </style>
@@ -519,7 +526,7 @@ if not st.session_state.unlocked:
         unsafe_allow_html=True,
     )
     entered_code = st.text_input(
-        "Access code", placeholder="Access code", label_visibility="collapsed", key="access_code_input", type="password"
+        "Access code", placeholder="Enter access code", label_visibility="collapsed", key="access_code_input", type="password"
     )
     if entered_code:
         if entered_code.strip().lower() == "javmuhak":
