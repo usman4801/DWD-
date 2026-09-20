@@ -2,8 +2,8 @@
 DWD Tool
 ========
 A Streamlit app that automates daily attendance ("DWD") report generation
-for warehouse operations, styled to match the Amazon Seller Tools design.
-Laid out to fit a single viewport with no page scrolling.
+for warehouse operations, styled as a polished Amazon Seller Tools page.
+Fits a single viewport — no page scrolling.
 """
 
 import io
@@ -144,7 +144,7 @@ def build_report(raw_df: pd.DataFrame, template_bytes: bytes, selected_date) -> 
 
 
 # =========================================================================
-# UI — Amazon Seller Tools theme, single-viewport (no scroll)
+# UI — Amazon Seller Tools theme, polished, single viewport
 # =========================================================================
 
 st.set_page_config(page_title="DWD Tool - Amazon Operations", page_icon="📦", layout="wide")
@@ -153,7 +153,7 @@ st.markdown(
     """
     <style>
     #MainMenu, header, footer {visibility: hidden;}
-    html, body {height: 100%; overflow: hidden;}
+    html, body {height: 100%; margin: 0; padding: 0; overflow: hidden;}
     .stApp {background: #eef1f5; height: 100vh; overflow: hidden;}
     .block-container {
         padding: 0 !important;
@@ -161,18 +161,24 @@ st.markdown(
         height: 100vh;
         overflow: hidden;
     }
+    /* kill Streamlit's default inter-widget spacing so our own padding
+       controls the rhythm precisely */
+    div[data-testid="stVerticalBlock"] {gap: 0rem !important;}
+    div[data-testid="element-container"] {margin: 0 !important;}
+    div[data-testid="stAppViewBlockContainer"] {padding: 0 !important;}
 
     /* ---------- Top navbar ---------- */
     .amz-navbar {
-        background: #131921;
-        padding: 8px 40px;
+        background: #0e1420;
+        padding: 9px 40px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border-bottom: 1px solid #232f3e;
     }
     .amz-logo {
         color: #ffffff;
-        font-size: 1.25rem;
+        font-size: 1.3rem;
         font-weight: 800;
         font-style: italic;
         letter-spacing: -0.5px;
@@ -180,187 +186,271 @@ st.markdown(
     .amz-logo::after {
         content: "⌣";
         color: #ff9900;
-        font-size: 1rem;
+        font-size: 1.05rem;
         margin-left: 2px;
     }
     .amz-nav-icons {
         display: flex;
         align-items: center;
         gap: 18px;
-        color: #ffffff;
+        color: #d9dee6;
         font-size: 1rem;
     }
     .amz-nav-icons .avatar {
-        width: 26px; height: 26px;
+        width: 27px; height: 27px;
         border-radius: 50%;
-        background: #37475a;
+        background: linear-gradient(135deg,#ff9900,#7c4fe0);
         display: flex; align-items: center; justify-content: center;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+        color: #fff;
     }
 
     /* ---------- Hero ---------- */
     .amz-hero {
-        background: linear-gradient(120deg, #0f1a2b 0%, #16324f 45%, #2c4a6e 100%);
-        padding: 18px 40px 16px 40px;
+        position: relative;
+        background:
+            radial-gradient(circle at 88% 15%, rgba(124,79,224,0.35) 0%, rgba(124,79,224,0) 45%),
+            radial-gradient(circle at 8% 100%, rgba(255,153,0,0.25) 0%, rgba(255,153,0,0) 40%),
+            linear-gradient(120deg, #0b1524 0%, #14273e 45%, #223f5f 100%);
+        padding: 20px 40px 18px 40px;
+        overflow: hidden;
     }
+    .hero-flex {display: flex; justify-content: space-between; align-items: center; gap: 20px;}
+    .hero-left {flex: 1; min-width: 0;}
     .amz-badge {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(255,153,0,0.18);
-        border: 1px solid rgba(255,153,0,0.5);
-        color: #ff9900;
+        background: rgba(255,153,0,0.16);
+        border: 1px solid rgba(255,153,0,0.55);
+        color: #ffb54d;
         font-weight: 600;
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         padding: 3px 12px;
         border-radius: 20px;
         margin-bottom: 8px;
+        letter-spacing: 0.2px;
     }
     .amz-hero h1 {
         color: #ffffff;
-        font-size: 2rem;
+        font-size: 2.15rem;
         font-weight: 800;
         margin: 0 0 2px 0;
         line-height: 1.1;
+        letter-spacing: -0.5px;
     }
-    .amz-hero h1 span {color: #ff9900;}
+    .amz-hero h1 span {
+        background: linear-gradient(90deg, #ffb230, #ff8a00);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
     .amz-hero h2 {
-        color: #ffffff;
+        color: #eef2f7;
         font-size: 1.02rem;
         font-weight: 600;
         margin: 0 0 6px 0;
     }
     .amz-hero p.desc {
-        color: #c9d3e0;
-        font-size: 0.84rem;
-        max-width: 560px;
+        color: #aebdd1;
+        font-size: 0.82rem;
+        max-width: 460px;
         line-height: 1.4;
         margin-bottom: 12px;
     }
-    .amz-features {display: flex; gap: 26px;}
+    .amz-features {display: flex; gap: 24px;}
     .amz-feature {display: flex; align-items: center; gap: 8px;}
     .amz-feature .icon {
         width: 28px; height: 28px;
         border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         flex-shrink: 0;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.3);
     }
-    .amz-feature .icon.orange {background: #ff9900;}
-    .amz-feature .icon.blue {background: #2f80ed;}
-    .amz-feature .icon.green {background: #17a672;}
-    .amz-feature .label {color: #ffffff; font-weight: 700; font-size: 0.82rem; line-height: 1.1;}
-    .amz-feature .sub {color: #a9b7c9; font-size: 0.7rem; line-height: 1.1;}
+    .amz-feature .icon.orange {background: linear-gradient(135deg,#ffb230,#ff8a00);}
+    .amz-feature .icon.blue {background: linear-gradient(135deg,#5fa3f7,#2f6fed);}
+    .amz-feature .icon.green {background: linear-gradient(135deg,#33cb95,#0f9d68);}
+    .amz-feature .label {color: #ffffff; font-weight: 700; font-size: 0.8rem; line-height: 1.15;}
+    .amz-feature .sub {color: #93a2b8; font-size: 0.68rem; line-height: 1.1;}
 
-    /* ---------- Content cards ---------- */
-    .amz-content {padding: 14px 40px 8px 40px;}
-    .amz-panel {
+    /* ---------- Hero decorative visual ---------- */
+    .hero-visual {
+        position: relative;
+        width: 250px; height: 190px;
+        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .hero-visual .blob {
+        position: absolute; border-radius: 50%; filter: blur(2px); opacity: 0.55;
+    }
+    .hero-visual .blob.b1 {width: 110px; height: 110px; background: #ff9900; top: -10px; right: 10px; opacity: 0.35;}
+    .hero-visual .blob.b2 {width: 70px; height: 70px; background: #2f6fed; bottom: -14px; left: 0; opacity: 0.35;}
+    .mock-card {
+        position: relative; z-index: 2;
+        width: 190px; height: 130px;
         background: #ffffff;
         border-radius: 12px;
-        box-shadow: 0 8px 20px rgba(20,30,50,0.08);
-        padding: 4px;
+        box-shadow: 0 18px 34px rgba(0,0,0,0.4);
+        padding: 10px 12px;
+        transform: rotate(-3deg);
+    }
+    .mock-card .mc-logo {
+        font-style: italic; font-weight: 800; color: #131921; font-size: 0.75rem; margin-bottom: 6px;
+    }
+    .mock-card .mc-logo::after {content:"⌣"; color:#ff9900; margin-left:1px;}
+    .mock-bars {display: flex; align-items: flex-end; gap: 4px; height: 42px; margin-bottom: 6px;}
+    .mock-bars div {width: 8px; border-radius: 2px 2px 0 0; background: linear-gradient(180deg,#5fa3f7,#2f6fed);}
+    .mock-donut {
+        position: absolute; right: 10px; top: 34px; width: 36px; height: 36px; border-radius: 50%;
+        background: conic-gradient(#ff9900 0deg 130deg, #2f6fed 130deg 260deg, #33cb95 260deg 360deg);
+    }
+    .mock-donut::after {
+        content: ""; position: absolute; inset: 7px; border-radius: 50%; background: #ffffff;
+    }
+    .mock-lines div {height: 5px; border-radius: 3px; background: #e3e8ef; margin-bottom: 4px;}
+    .mock-lines div:nth-child(1) {width: 70%;}
+    .mock-lines div:nth-child(2) {width: 45%;}
+    .mock-xlsx {
+        position: absolute; z-index: 3; right: -14px; bottom: -10px;
+        width: 42px; height: 42px; border-radius: 9px;
+        background: linear-gradient(160deg,#1f8f4e,#0f6b37);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 800; font-size: 1rem;
+        box-shadow: 0 10px 18px rgba(0,0,0,0.35);
+        transform: rotate(6deg);
+    }
+    .hero-visual .quip {
+        position: absolute; top: -18px; right: -6px;
+        font-style: italic; font-weight: 600; font-size: 0.68rem;
+        color: #cdd8e8; line-height: 1.25; text-align: right; width: 130px;
+    }
+    .hero-visual .quip b {color: #ffb54d;}
+
+    /* ---------- Content section ---------- */
+    .amz-content {
+        position: relative;
+        padding: 16px 40px 6px 40px;
+        overflow: hidden;
+    }
+    .amz-content .cblob {position: absolute; border-radius: 50%; filter: blur(30px); z-index: 0;}
+    .amz-content .cblob.c1 {width: 160px; height: 160px; background: rgba(255,153,0,0.16); left: -40px; bottom: -50px;}
+    .amz-content .cblob.c2 {width: 140px; height: 140px; background: rgba(47,111,237,0.14); right: 60px; top: -30px;}
+
+    .amz-panel-wrap {position: relative; z-index: 1;}
+    .amz-panel {
+        background: #ffffff;
+        border-radius: 14px;
+        box-shadow: 0 10px 26px rgba(20,30,50,0.1);
+        border: 1px solid #eef0f4;
+        padding-bottom: 4px;
     }
     .left-card {
-        background: #f3f6fb;
-        border-radius: 10px;
-        padding: 16px 16px;
+        background: linear-gradient(160deg,#f5f8fd,#eef2fa);
+        border-radius: 12px;
+        padding: 18px 16px;
         height: 100%;
+        border: 1px solid #e6ecf6;
     }
     .left-card .icon-circle {
-        width: 34px; height: 34px;
-        border-radius: 50%;
-        background: #dbe6fb;
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg,#dbe6fb,#c8d9f8);
         display: flex; align-items: center; justify-content: center;
         font-size: 1rem;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
     }
     .left-card h3 {
         color: #131921;
-        font-size: 1.02rem;
+        font-size: 1.05rem;
         font-weight: 800;
         margin: 0 0 8px 0;
         line-height: 1.2;
     }
     .left-card p {
         color: #5b6673;
-        font-size: 0.78rem;
-        line-height: 1.4;
+        font-size: 0.79rem;
+        line-height: 1.42;
         margin-bottom: 10px;
     }
     .left-card .tagline {
         font-style: italic;
         font-weight: 700;
         color: #16324f;
-        font-size: 0.86rem;
+        font-size: 0.88rem;
         border-bottom: 2px solid #ff9900;
         display: inline-block;
         padding-bottom: 1px;
     }
 
-    .step-row {display: flex; gap: 10px; padding: 8px 16px 2px 16px;}
+    .step-row {display: flex; gap: 10px; padding: 14px 18px 2px 18px;}
+    .step-row.first {padding-top: 16px;}
     .step-num {
-        width: 24px; height: 24px;
+        width: 25px; height: 25px;
         border-radius: 50%;
-        color: #fff; font-weight: 700; font-size: 0.75rem;
+        color: #fff; font-weight: 700; font-size: 0.76rem;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
+        box-shadow: 0 3px 7px rgba(0,0,0,0.15);
     }
-    .step-num.blue {background: #2f80ed;}
-    .step-num.purple {background: #7c4fe0;}
-    .step-title {color: #131921; font-weight: 700; font-size: 0.86rem; margin-bottom: 1px;}
+    .step-num.blue {background: linear-gradient(135deg,#5fa3f7,#2f6fed);}
+    .step-num.purple {background: linear-gradient(135deg,#a685f2,#7c4fe0);}
+    .step-title {color: #131921; font-weight: 700; font-size: 0.87rem; margin-bottom: 1px;}
     .step-sub {color: #6b7280; font-size: 0.72rem; line-height: 1.25;}
 
-    div[data-testid="stDateInput"] {padding: 0 16px 2px 50px;}
+    div[data-testid="stDateInput"] {padding: 0 18px 4px 51px;}
     div[data-testid="stDateInput"] input {
-        border-radius: 7px !important;
+        border-radius: 8px !important;
         border: 1px solid #d7dde5 !important;
         padding: 6px 10px !important;
         font-size: 0.82rem !important;
+        background: #fafbfd !important;
     }
     div[data-testid="stDateInput"] label {display: none;}
 
     div[data-testid="stFileUploaderDropzone"] {
-        background: #f5f4ff !important;
-        border: 2px dashed #a78bfa !important;
-        border-radius: 8px !important;
-        padding: 4px !important;
+        background: linear-gradient(160deg,#f6f4ff,#efeaff) !important;
+        border: 2px dashed #b39ff5 !important;
+        border-radius: 9px !important;
+        padding: 3px !important;
     }
-    div[data-testid="stFileUploader"] {padding: 2px 16px 4px 50px;}
-    div[data-testid="stFileUploader"] section {padding: 6px !important;}
+    div[data-testid="stFileUploader"] {padding: 3px 18px 4px 51px;}
+    div[data-testid="stFileUploader"] section {padding: 5px !important;}
     div[data-testid="stFileUploaderDropzoneInstructions"] span {font-size: 0.78rem !important;}
-    div[data-testid="stFileUploaderDropzoneInstructions"] small {font-size: 0.68rem !important;}
+    div[data-testid="stFileUploaderDropzoneInstructions"] small {font-size: 0.67rem !important;}
 
-    div.stButton {display: flex; justify-content: flex-end; padding: 2px 16px 8px 0;}
+    div.stButton {display: flex; justify-content: flex-end; padding: 4px 18px 10px 0;}
     div.stButton>button {
-        background: #ff9900;
-        color: #131921;
+        background: linear-gradient(135deg,#ffb230,#ff8a00);
+        color: #14202e;
         font-weight: 700;
-        border-radius: 7px;
-        padding: 0.35rem 1.3rem;
+        border-radius: 8px;
+        padding: 0.36rem 1.35rem;
         font-size: 0.85rem;
         border: none;
-        box-shadow: 0 4px 10px rgba(255,153,0,0.35);
+        box-shadow: 0 6px 14px rgba(255,153,0,0.4);
+        transition: transform 0.12s ease;
     }
-    div.stButton>button:hover {background: #e88b00; color: #ffffff;}
+    div.stButton>button:hover {transform: translateY(-1px); box-shadow: 0 8px 18px rgba(255,153,0,0.5);}
 
-    div.stDownloadButton {display: flex; justify-content: flex-end; padding: 0 16px 8px 0;}
+    div.stDownloadButton {display: flex; justify-content: flex-end; padding: 0 18px 10px 0;}
     div.stDownloadButton>button {
-        background: #17a672;
+        background: linear-gradient(135deg,#33cb95,#0f9d68);
         color: #ffffff;
         font-weight: 700;
-        border-radius: 7px;
-        padding: 0.35rem 1.3rem;
+        border-radius: 8px;
+        padding: 0.36rem 1.35rem;
         font-size: 0.85rem;
         border: none;
-        box-shadow: 0 4px 10px rgba(23,166,114,0.35);
+        box-shadow: 0 6px 14px rgba(15,157,104,0.4);
     }
 
-    div[data-testid="stAlert"] {padding: 6px 10px; margin: 0 16px 6px 16px; font-size: 0.8rem;}
+    div[data-testid="stAlert"] {padding: 6px 10px; margin: 2px 18px 6px 18px !important; font-size: 0.8rem; border-radius: 8px;}
 
     /* ---------- Footer ---------- */
     .amz-footer {
         display: flex; justify-content: center; gap: 40px;
-        padding: 6px 20px 10px 20px;
+        padding: 8px 20px 12px 20px;
         color: #6b7280; font-size: 0.72rem;
     }
     .amz-footer span {display: flex; align-items: center; gap: 5px;}
@@ -388,25 +478,47 @@ st.markdown(
 st.markdown(
     """
     <div class="amz-hero">
-        <div class="amz-badge">⚡ Amazon Seller Tools</div>
-        <h1>DWD <span>Tool</span></h1>
-        <h2>Amazon Daily Workforce Dashboard Generator</h2>
-        <p class="desc">
-            Generate your daily workforce dashboard report quickly and easily.
-            Upload your data and get actionable insights in just a few clicks.
-        </p>
-        <div class="amz-features">
-            <div class="amz-feature">
-                <div class="icon orange">⚡</div>
-                <div><div class="label">Fast</div><div class="sub">Get results in seconds</div></div>
+        <div class="hero-flex">
+            <div class="hero-left">
+                <div class="amz-badge">⚡ Amazon Seller Tools</div>
+                <h1>DWD <span>Tool</span></h1>
+                <h2>Amazon Daily Workforce Dashboard Generator</h2>
+                <p class="desc">
+                    Generate your daily workforce dashboard report quickly and easily.
+                    Upload your data and get actionable insights in just a few clicks.
+                </p>
+                <div class="amz-features">
+                    <div class="amz-feature">
+                        <div class="icon orange">⚡</div>
+                        <div><div class="label">Fast</div><div class="sub">Get results in seconds</div></div>
+                    </div>
+                    <div class="amz-feature">
+                        <div class="icon blue">🛡️</div>
+                        <div><div class="label">Secure</div><div class="sub">Your data stays safe</div></div>
+                    </div>
+                    <div class="amz-feature">
+                        <div class="icon green">📈</div>
+                        <div><div class="label">Accurate</div><div class="sub">Reliable insights</div></div>
+                    </div>
+                </div>
             </div>
-            <div class="amz-feature">
-                <div class="icon blue">🛡️</div>
-                <div><div class="label">Secure</div><div class="sub">Your data stays safe</div></div>
-            </div>
-            <div class="amz-feature">
-                <div class="icon green">📈</div>
-                <div><div class="label">Accurate</div><div class="sub">Reliable insights</div></div>
+            <div class="hero-visual">
+                <div class="quip">Turn your data<br/>into <b>insights</b></div>
+                <div class="blob b1"></div>
+                <div class="blob b2"></div>
+                <div class="mock-card">
+                    <div class="mc-logo">amazon</div>
+                    <div class="mock-lines"><div></div><div></div></div>
+                    <div class="mock-bars">
+                        <div style="height:14px;"></div>
+                        <div style="height:22px;"></div>
+                        <div style="height:18px;"></div>
+                        <div style="height:30px;"></div>
+                        <div style="height:26px;"></div>
+                    </div>
+                    <div class="mock-donut"></div>
+                </div>
+                <div class="mock-xlsx">X</div>
             </div>
         </div>
     </div>
@@ -415,7 +527,11 @@ st.markdown(
 )
 
 # --- Main content -------------------------------------------------------
-st.markdown('<div class="amz-content">', unsafe_allow_html=True)
+st.markdown(
+    '<div class="amz-content"><div class="cblob c1"></div><div class="cblob c2"></div>'
+    '<div class="amz-panel-wrap">',
+    unsafe_allow_html=True,
+)
 
 left_col, right_col = st.columns([1, 2.1], gap="medium")
 
@@ -436,11 +552,10 @@ with left_col:
     )
 
 with right_col:
-    st.markdown('<div class="amz-panel">', unsafe_allow_html=True)
-
     st.markdown(
         """
-        <div class="step-row">
+        <div class="amz-panel">
+        <div class="step-row first">
             <div class="step-num blue">1</div>
             <div>
                 <div class="step-title">Select Report Date</div>
@@ -502,7 +617,7 @@ with right_col:
 
     st.markdown("</div>", unsafe_allow_html=True)  # close amz-panel
 
-st.markdown("</div>", unsafe_allow_html=True)  # close amz-content
+st.markdown("</div></div>", unsafe_allow_html=True)  # close amz-panel-wrap + amz-content
 
 # --- Footer -----------------------------------------------------------------
 st.markdown(
