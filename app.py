@@ -3,6 +3,7 @@ DWD Tool
 ========
 A Streamlit app that automates daily attendance ("DWD") report generation
 for warehouse operations, styled to match the Amazon Seller Tools design.
+Laid out to fit a single viewport with no page scrolling.
 """
 
 import io
@@ -143,7 +144,7 @@ def build_report(raw_df: pd.DataFrame, template_bytes: bytes, selected_date) -> 
 
 
 # =========================================================================
-# UI — Amazon Seller Tools theme
+# UI — Amazon Seller Tools theme, single-viewport (no scroll)
 # =========================================================================
 
 st.set_page_config(page_title="DWD Tool - Amazon Operations", page_icon="📦", layout="wide")
@@ -152,52 +153,55 @@ st.markdown(
     """
     <style>
     #MainMenu, header, footer {visibility: hidden;}
-    .stApp {background: #eef1f5;}
-    .block-container {padding: 0 !important; max-width: 100% !important;}
+    html, body {height: 100%; overflow: hidden;}
+    .stApp {background: #eef1f5; height: 100vh; overflow: hidden;}
+    .block-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+        height: 100vh;
+        overflow: hidden;
+    }
 
     /* ---------- Top navbar ---------- */
     .amz-navbar {
         background: #131921;
-        padding: 14px 48px;
+        padding: 8px 40px;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
     .amz-logo {
         color: #ffffff;
-        font-size: 1.6rem;
+        font-size: 1.25rem;
         font-weight: 800;
         font-style: italic;
         letter-spacing: -0.5px;
-        position: relative;
     }
     .amz-logo::after {
         content: "⌣";
         color: #ff9900;
-        font-size: 1.3rem;
+        font-size: 1rem;
         margin-left: 2px;
     }
     .amz-nav-icons {
         display: flex;
         align-items: center;
-        gap: 22px;
+        gap: 18px;
         color: #ffffff;
-        font-size: 1.15rem;
+        font-size: 1rem;
     }
     .amz-nav-icons .avatar {
-        width: 34px; height: 34px;
+        width: 26px; height: 26px;
         border-radius: 50%;
         background: #37475a;
         display: flex; align-items: center; justify-content: center;
-        font-size: 1rem;
+        font-size: 0.85rem;
     }
 
     /* ---------- Hero ---------- */
     .amz-hero {
         background: linear-gradient(120deg, #0f1a2b 0%, #16324f 45%, #2c4a6e 100%);
-        padding: 48px 48px 40px 48px;
-        position: relative;
-        overflow: hidden;
+        padding: 18px 40px 16px 40px;
     }
     .amz-badge {
         display: inline-flex;
@@ -207,150 +211,159 @@ st.markdown(
         border: 1px solid rgba(255,153,0,0.5);
         color: #ff9900;
         font-weight: 600;
-        font-size: 0.8rem;
-        padding: 5px 14px;
+        font-size: 0.72rem;
+        padding: 3px 12px;
         border-radius: 20px;
-        margin-bottom: 18px;
+        margin-bottom: 8px;
     }
     .amz-hero h1 {
         color: #ffffff;
-        font-size: 3rem;
+        font-size: 2rem;
         font-weight: 800;
-        margin: 0 0 4px 0;
+        margin: 0 0 2px 0;
         line-height: 1.1;
     }
     .amz-hero h1 span {color: #ff9900;}
     .amz-hero h2 {
         color: #ffffff;
-        font-size: 1.35rem;
+        font-size: 1.02rem;
         font-weight: 600;
-        margin: 0 0 14px 0;
+        margin: 0 0 6px 0;
     }
     .amz-hero p.desc {
         color: #c9d3e0;
-        font-size: 1.02rem;
-        max-width: 480px;
-        line-height: 1.55;
-        margin-bottom: 26px;
+        font-size: 0.84rem;
+        max-width: 560px;
+        line-height: 1.4;
+        margin-bottom: 12px;
     }
-    .amz-features {display: flex; gap: 34px;}
-    .amz-feature {display: flex; align-items: center; gap: 10px;}
+    .amz-features {display: flex; gap: 26px;}
+    .amz-feature {display: flex; align-items: center; gap: 8px;}
     .amz-feature .icon {
-        width: 38px; height: 38px;
+        width: 28px; height: 28px;
         border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        font-size: 1.05rem;
+        font-size: 0.85rem;
         flex-shrink: 0;
     }
     .amz-feature .icon.orange {background: #ff9900;}
     .amz-feature .icon.blue {background: #2f80ed;}
     .amz-feature .icon.green {background: #17a672;}
-    .amz-feature .label {color: #ffffff; font-weight: 700; font-size: 0.95rem;}
-    .amz-feature .sub {color: #a9b7c9; font-size: 0.8rem;}
+    .amz-feature .label {color: #ffffff; font-weight: 700; font-size: 0.82rem; line-height: 1.1;}
+    .amz-feature .sub {color: #a9b7c9; font-size: 0.7rem; line-height: 1.1;}
 
     /* ---------- Content cards ---------- */
-    .amz-content {padding: 36px 48px 20px 48px;}
+    .amz-content {padding: 14px 40px 8px 40px;}
     .amz-panel {
         background: #ffffff;
-        border-radius: 14px;
-        box-shadow: 0 10px 26px rgba(20,30,50,0.08);
-        padding: 8px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(20,30,50,0.08);
+        padding: 4px;
     }
     .left-card {
         background: #f3f6fb;
-        border-radius: 12px;
-        padding: 26px 22px;
+        border-radius: 10px;
+        padding: 16px 16px;
         height: 100%;
     }
     .left-card .icon-circle {
-        width: 46px; height: 46px;
+        width: 34px; height: 34px;
         border-radius: 50%;
         background: #dbe6fb;
         display: flex; align-items: center; justify-content: center;
-        font-size: 1.3rem;
-        margin-bottom: 14px;
+        font-size: 1rem;
+        margin-bottom: 8px;
     }
     .left-card h3 {
         color: #131921;
-        font-size: 1.25rem;
+        font-size: 1.02rem;
         font-weight: 800;
-        margin: 0 0 12px 0;
-        line-height: 1.25;
+        margin: 0 0 8px 0;
+        line-height: 1.2;
     }
     .left-card p {
         color: #5b6673;
-        font-size: 0.92rem;
-        line-height: 1.55;
-        margin-bottom: 18px;
+        font-size: 0.78rem;
+        line-height: 1.4;
+        margin-bottom: 10px;
     }
     .left-card .tagline {
         font-style: italic;
         font-weight: 700;
         color: #16324f;
-        font-size: 1.05rem;
+        font-size: 0.86rem;
         border-bottom: 2px solid #ff9900;
         display: inline-block;
-        padding-bottom: 2px;
+        padding-bottom: 1px;
     }
 
-    .step-row {display: flex; gap: 14px; padding: 14px 20px; margin-bottom: 6px;}
+    .step-row {display: flex; gap: 10px; padding: 8px 16px 2px 16px;}
     .step-num {
-        width: 30px; height: 30px;
+        width: 24px; height: 24px;
         border-radius: 50%;
-        color: #fff; font-weight: 700; font-size: 0.9rem;
+        color: #fff; font-weight: 700; font-size: 0.75rem;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
     }
     .step-num.blue {background: #2f80ed;}
     .step-num.purple {background: #7c4fe0;}
-    .step-title {color: #131921; font-weight: 700; font-size: 1.02rem; margin-bottom: 2px;}
-    .step-sub {color: #6b7280; font-size: 0.85rem;}
+    .step-title {color: #131921; font-weight: 700; font-size: 0.86rem; margin-bottom: 1px;}
+    .step-sub {color: #6b7280; font-size: 0.72rem; line-height: 1.25;}
 
-    div[data-testid="stDateInput"] {padding: 0 20px 6px 64px;}
+    div[data-testid="stDateInput"] {padding: 0 16px 2px 50px;}
     div[data-testid="stDateInput"] input {
-        border-radius: 8px !important;
+        border-radius: 7px !important;
         border: 1px solid #d7dde5 !important;
-        padding: 10px 14px !important;
+        padding: 6px 10px !important;
+        font-size: 0.82rem !important;
     }
+    div[data-testid="stDateInput"] label {display: none;}
 
     div[data-testid="stFileUploaderDropzone"] {
         background: #f5f4ff !important;
         border: 2px dashed #a78bfa !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
+        padding: 4px !important;
     }
-    div[data-testid="stFileUploader"] {padding: 4px 20px 10px 64px;}
-    div[data-testid="stFileUploaderDropzoneInstructions"] svg {display:none;}
+    div[data-testid="stFileUploader"] {padding: 2px 16px 4px 50px;}
+    div[data-testid="stFileUploader"] section {padding: 6px !important;}
+    div[data-testid="stFileUploaderDropzoneInstructions"] span {font-size: 0.78rem !important;}
+    div[data-testid="stFileUploaderDropzoneInstructions"] small {font-size: 0.68rem !important;}
 
-    div.stButton {display: flex; justify-content: flex-end; padding: 4px 20px 18px 0;}
+    div.stButton {display: flex; justify-content: flex-end; padding: 2px 16px 8px 0;}
     div.stButton>button {
         background: #ff9900;
         color: #131921;
         font-weight: 700;
-        border-radius: 8px;
-        padding: 0.6rem 1.8rem;
+        border-radius: 7px;
+        padding: 0.35rem 1.3rem;
+        font-size: 0.85rem;
         border: none;
-        box-shadow: 0 6px 14px rgba(255,153,0,0.35);
+        box-shadow: 0 4px 10px rgba(255,153,0,0.35);
     }
     div.stButton>button:hover {background: #e88b00; color: #ffffff;}
 
-    div.stDownloadButton {display: flex; justify-content: flex-end; padding: 0 20px 18px 0;}
+    div.stDownloadButton {display: flex; justify-content: flex-end; padding: 0 16px 8px 0;}
     div.stDownloadButton>button {
         background: #17a672;
         color: #ffffff;
         font-weight: 700;
-        border-radius: 8px;
-        padding: 0.6rem 1.8rem;
+        border-radius: 7px;
+        padding: 0.35rem 1.3rem;
+        font-size: 0.85rem;
         border: none;
-        box-shadow: 0 6px 14px rgba(23,166,114,0.35);
+        box-shadow: 0 4px 10px rgba(23,166,114,0.35);
     }
+
+    div[data-testid="stAlert"] {padding: 6px 10px; margin: 0 16px 6px 16px; font-size: 0.8rem;}
 
     /* ---------- Footer ---------- */
     .amz-footer {
-        display: flex; justify-content: center; gap: 48px;
-        padding: 18px 20px 40px 20px;
-        color: #6b7280; font-size: 0.85rem;
+        display: flex; justify-content: center; gap: 40px;
+        padding: 6px 20px 10px 20px;
+        color: #6b7280; font-size: 0.72rem;
     }
-    .amz-footer span {display: flex; align-items: center; gap: 6px;}
+    .amz-footer span {display: flex; align-items: center; gap: 5px;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -459,39 +472,37 @@ with right_col:
 
     generate_clicked = st.button("📊  Generate Dashboard  →", use_container_width=False)
 
+    if generate_clicked:
+        if uploaded_file is None:
+            st.error("Please upload a raw CSV file first.")
+        else:
+            try:
+                raw_df = pd.read_csv(uploaded_file)
+            except Exception as e:
+                st.error(f"Error reading raw CSV file: {e}")
+                raw_df = None
+
+            if raw_df is not None:
+                with st.spinner("Generating DWD report..."):
+                    try:
+                        template_bytes = fetch_template_bytes(TEMPLATE_GITHUB_URL, GITHUB_TOKEN)
+                        report_bytes, report_date = build_report(raw_df, template_bytes, selected_date)
+                        st.session_state["report_bytes"] = report_bytes
+                        st.session_state["report_date"] = report_date
+                    except Exception as e:
+                        st.error(f"Failed to generate report: {e}")
+
+    if "report_bytes" in st.session_state:
+        st.download_button(
+            "⬇  Download File",
+            data=st.session_state["report_bytes"],
+            file_name=f"DWD-AUH1-{st.session_state['report_date'].strftime('%d%m%Y')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
     st.markdown("</div>", unsafe_allow_html=True)  # close amz-panel
 
 st.markdown("</div>", unsafe_allow_html=True)  # close amz-content
-
-# --- Generation flow ------------------------------------------------------
-if generate_clicked:
-    if uploaded_file is None:
-        st.error("Please upload a raw CSV file before generating the dashboard.")
-    else:
-        try:
-            raw_df = pd.read_csv(uploaded_file)
-        except Exception as e:
-            st.error(f"Error reading raw CSV file: {e}")
-            raw_df = None
-
-        if raw_df is not None:
-            with st.spinner("Fetching template from GitHub and generating DWD report..."):
-                try:
-                    template_bytes = fetch_template_bytes(TEMPLATE_GITHUB_URL, GITHUB_TOKEN)
-                    report_bytes, report_date = build_report(raw_df, template_bytes, selected_date)
-                    st.session_state["report_bytes"] = report_bytes
-                    st.session_state["report_date"] = report_date
-                except Exception as e:
-                    st.error(f"Failed to generate report: {e}")
-
-if "report_bytes" in st.session_state:
-    st.success("DWD Report generated successfully!")
-    st.download_button(
-        "⬇  Download File",
-        data=st.session_state["report_bytes"],
-        file_name=f"DWD-AUH1-{st.session_state['report_date'].strftime('%d%m%Y')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
 
 # --- Footer -----------------------------------------------------------------
 st.markdown(
