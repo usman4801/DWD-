@@ -161,10 +161,11 @@ st.markdown(
         height: 100vh;
         overflow: hidden;
     }
-    /* kill Streamlit's default inter-widget spacing so our own padding
-       controls the rhythm precisely */
-    div[data-testid="stVerticalBlock"] {gap: 0rem !important;}
-    div[data-testid="element-container"] {margin: 0 !important;}
+    /* tighten (but don't fully zero) Streamlit's default inter-widget
+       spacing — zeroing it entirely collapses each widget's own internal
+       reserved space and makes them overlap the text above them */
+    div[data-testid="stVerticalBlock"] {gap: 0.3rem !important;}
+    div[data-testid="element-container"] {margin-bottom: 0.15rem !important;}
     div[data-testid="stAppViewBlockContainer"] {padding: 0 !important;}
 
     /* ---------- Top navbar ---------- */
@@ -398,7 +399,7 @@ st.markdown(
     .step-title {color: #131921; font-weight: 700; font-size: 0.87rem; margin-bottom: 1px;}
     .step-sub {color: #6b7280; font-size: 0.72rem; line-height: 1.25;}
 
-    div[data-testid="stDateInput"] {padding: 0 18px 4px 51px;}
+    div[data-testid="stDateInput"] {padding: 6px 18px 6px 51px; margin-top: 2px !important;}
     div[data-testid="stDateInput"] input {
         border-radius: 8px !important;
         border: 1px solid #d7dde5 !important;
@@ -406,7 +407,6 @@ st.markdown(
         font-size: 0.82rem !important;
         background: #fafbfd !important;
     }
-    div[data-testid="stDateInput"] label {display: none;}
 
     div[data-testid="stFileUploaderDropzone"] {
         background: linear-gradient(160deg,#f6f4ff,#efeaff) !important;
@@ -414,7 +414,7 @@ st.markdown(
         border-radius: 9px !important;
         padding: 3px !important;
     }
-    div[data-testid="stFileUploader"] {padding: 3px 18px 4px 51px;}
+    div[data-testid="stFileUploader"] {padding: 6px 18px 6px 51px; margin-top: 2px !important;}
     div[data-testid="stFileUploader"] section {padding: 5px !important;}
     div[data-testid="stFileUploaderDropzoneInstructions"] span {font-size: 0.78rem !important;}
     div[data-testid="stFileUploaderDropzoneInstructions"] small {font-size: 0.67rem !important;}
@@ -480,7 +480,7 @@ st.markdown(
     <div class="amz-hero">
         <div class="hero-flex">
             <div class="hero-left">
-                <div class="amz-badge">⚡ Amazon Seller Tools</div>
+                <div class="amz-badge">⚡ Amazon Tool</div>
                 <h1>DWD <span>Tool</span></h1>
                 <h2>Amazon Daily Workforce Dashboard Generator</h2>
                 <p class="desc">
@@ -585,7 +585,7 @@ with right_col:
         "Upload Raw File (CSV)", type=["csv"], label_visibility="collapsed"
     )
 
-    generate_clicked = st.button("📊  Generate Dashboard  →", use_container_width=False)
+    generate_clicked = st.button("📊  Download DWD  →", use_container_width=False)
 
     if generate_clicked:
         if uploaded_file is None:
@@ -609,7 +609,7 @@ with right_col:
 
     if "report_bytes" in st.session_state:
         st.download_button(
-            "⬇  Download File",
+            "⬇  Save DWD Report",
             data=st.session_state["report_bytes"],
             file_name=f"DWD-AUH1-{st.session_state['report_date'].strftime('%d%m%Y')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
