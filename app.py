@@ -2,7 +2,7 @@
 DWD Tool
 ========
 A professional Streamlit app that automates daily attendance ("DWD") report
-generation for warehouse operations with a clean background design.
+generation for warehouse operations.
 """
 
 import io
@@ -17,15 +17,12 @@ from openpyxl import load_workbook
 # CONFIGURATION
 # =========================================================================
 
-TEMPLATE_GITHUB_URL = st.secrets.get(
-    "TEMPLATE_GITHUB_URL",
-    "https://raw.githubusercontent.com/<org>/<repo>/<branch>/Blank%20file.xlsx",
-)
+TEMPLATE_GITHUB_URL = "https://raw.githubusercontent.com/usman4801/DWD-/main/Blank%20file.xlsx"
 GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
 
 SHEET_ROSTER = "Roster"
 
-# Exact raw CSV column mappings matching your actual export files
+# Exact raw CSV column mappings
 COL_EMP_ID = "EmpID"
 COL_DATE = "Date"
 COL_PRESENT_STATUS = "present_status"
