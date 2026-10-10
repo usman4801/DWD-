@@ -114,4 +114,21 @@ def init_db():
   with db_connect() as conn:
     conn.execute(
         """
-        CREATE
+        CREATE TABLE IF NOT EXISTS complaints (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            amz_id TEXT NOT NULL,
+            employee_name TEXT NOT NULL,
+            site TEXT NOT NULL DEFAULT 'DXB5',
+            is_anonymous INTEGER NOT NULL DEFAULT 0,
+            category TEXT NOT NULL,
+            message TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Open',
+            reply TEXT DEFAULT '',
+            upvotes INTEGER NOT NULL DEFAULT 0,
+            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
+@st
