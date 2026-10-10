@@ -104,6 +104,3 @@ st.markdown(
       background:var(--quess-blue); border-color:var(--quess-blue); color:white;
     }
     div.stButton > button[kind="primary"]:hover, div.stFormSubmitButton > button[kind="primary"]:hover {
-      background:#003761; border-color:#003761; color:white;
-    }
-    div[data-baseweb="select"] >
