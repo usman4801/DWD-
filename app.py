@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 
-# Page Configuration (Wide layout for Amazon Workforce style)
+# Page Configuration
 st.set_page_config(
     page_title="Workforce A to Z - MyVoice", page_icon="🗣️", layout="wide"
 )
@@ -39,7 +39,7 @@ st.markdown(
             border-left: 4px solid #ff9900;
         }
     </style>
-""",
+    """,
     unsafe_allow_html=True,
 )
 
@@ -92,11 +92,11 @@ st.markdown(
         <h2 style="margin: 0; color: #232f3e; font-size: 22px;">workforce <span style="color: #ff9900;">a to z</span></h2>
         <span style="margin-left: 30px; font-weight: bold; font-size: 18px; color: #0073bb; border-bottom: 3px solid #0073bb; padding-bottom: 8px;">MyVoice</span>
     </div>
-""",
+    """,
     unsafe_allow_html=True,
 )
 
-# App Mode (Tabs or Sidebar)
+# App Mode
 app_mode = st.sidebar.selectbox(
     "Navigation Mode", ["MyVoice Feed", "QuessCorp Admin Panel"]
 )
@@ -105,7 +105,6 @@ app_mode = st.sidebar.selectbox(
 # 1. MYVOICE FEED (ASSOCIATE PORTAL)
 # -------------------------------------------------------------
 if app_mode == "MyVoice Feed":
-  # Top Filter & Search Bar Row like image
   col_filter, col_search, col_btn = st.columns([1.5, 3, 1])
 
   with col_filter:
@@ -123,7 +122,6 @@ if app_mode == "MyVoice Feed":
   with col_btn:
     open_new_comment = st.button("+ New Comment", use_container_width=True)
 
-  # Modal / Expandable Form for New Comment when clicked
   if open_new_comment:
     st.session_state["show_form"] = True
 
@@ -203,7 +201,11 @@ if app_mode == "MyVoice Feed":
                     category,
                     message,
                     "Open",
-                    "Thank you for taking the time to share this. Your feedback has been received — we're reviewing it with the relevant team.",
+                    (
+                        "Thank you for taking the time to share this. Your"
+                        " feedback has been received — we're reviewing it with"
+                        " the relevant team."
+                    ),
                     0,
                 ),
             )
@@ -220,7 +222,6 @@ if app_mode == "MyVoice Feed":
 
   st.markdown("---")
 
-  # Fetch posts from DB
   conn = sqlite3.connect("myvoice_portal.db")
   query_str = "SELECT * FROM complaints ORDER BY id DESC"
   feed_df = pd.read_sql(query_str, conn)
@@ -228,11 +229,10 @@ if app_mode == "MyVoice Feed":
 
   if feed_df.empty:
     st.info(
-        "Abhi koi comment ya post nahi hai. Upar '+ New Comment' par click karke"
-        " pehli post dalein!"
+        "Abhi koi comment ya post nahi hai. Upar '+ New Comment' par click"
+        " karke pehli post dalein!"
     )
   else:
-    # Filter by search query if entered
     if search_query:
       feed_df = feed_df[
           feed_df["message"].str.contains(search_query, case=False, na=False)
@@ -242,7 +242,6 @@ if app_mode == "MyVoice Feed":
       ]
 
     for index, row in feed_df.iterrows():
-      # Determine author display name
       if row["is_anonymous"] == 1:
         author_display = "Anonymous"
       else:
@@ -250,23 +249,146 @@ if app_mode == "MyVoice Feed":
 
       status_badge = row["status"]
 
-      # Card Layout
-      with st.container():
+      st.markdown(
+          f"""
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div>
+                        <span style="font-weight: bold; font-size: 15px; color: #232f3e;">👤 {author_display}</span>
+                        <span style="color: #666; font-size: 13px; margin-left: 10px;">• {row['date']}</span>
+                    </div>
+                    <div>
+                        <span style="background-color: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">📌 {status_badge}</span>
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: #0073bb; font-weight: bold; margin-bottom: 8px;">Category: {row['category']}</div>
+                <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 15px;">
+                    {row['message']}
+                </div>
+        """,
+          unsafe_allow_html=True,
+      )
+
+      col_up, col_dummy = st.columns([1, 6])
+      with col_up:
+        if st.button(f"👍 {row['upvotes']}", key=f"up_{row['id']}"):
+          conn = sqlite3.connect("myvoice_portal.db")
+          cursor = conn.cursor()
+          cursor.execute(
+              "UPDATE complaints SET upvotes = upvotes + 1 WHERE id = ?",
+              (row["id"],),
+          )
+          conn.commit()
+          conn.close()
+          st.rerun()
+
+      if row["reply"]:
         st.markdown(
             f"""
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <div>
-                            <span style="font-weight: bold; font-size: 15px; color: #232f3e;">👤 {author_display}</span>
-                            <span style="color: #666; font-size: 13px; margin-left: 10px;">• {row['date']}</span>
-                        </div>
-                        <div>
-                            <span style="background-color: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">📌 {status_badge}</span>
-                        </div>
+                <div class="response-box">
+                    <div style="font-weight: bold; font-size: 13px; color: #232f3e; margin-bottom: 4px;">
+                        🏢 QuessCorp HR Partner & Management Team
                     </div>
-                    <div style="font-size: 12px; color: #0073bb; font-weight: bold; margin-bottom: 8px;">Category: {row['category']}</div>
-                    <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 15px;">
-                        {row['message']}
+                    <div style="font-size: 13px; color: #444;">
+                        {row['reply']}
                     </div>
+                </div>
             """,
-            unsafe_allow
+            unsafe_allow_html=True,
+        )
+
+      st.markdown("</div>", unsafe_allow_html=True)
+
+
+# -------------------------------------------------------------
+# 2. QUESSCORP ADMIN PANEL
+# -------------------------------------------------------------
+elif app_mode == "QuessCorp Admin Panel":
+  st.title("🔐 QuessCorp Management Portal")
+  st.markdown(
+      "Yahan agency admin login karke saari confidential employee identities"
+      " dekh sakti hai aur official responses post kar sakti hai."
+  )
+
+  admin_pass = st.text_input(
+      "Enter Admin Password", type="password", placeholder="Password dalein"
+  )
+
+  if admin_pass == "quess123":
+    st.success("🔓 Access Granted!")
+
+    conn = sqlite3.connect("myvoice_portal.db")
+    admin_df = pd.read_sql("SELECT * FROM complaints ORDER BY id DESC", conn)
+    conn.close()
+
+    if admin_df.empty:
+      st.info("Abhi koi complaint ya feedback darj nahi hua hai.")
+    else:
+      st.subheader("📊 All Submitted Complaints (Confidential Backend)")
+      st.dataframe(
+          admin_df[[
+              "id",
+              "date",
+              "psoft_no",
+              "amz_id",
+              "employee_name",
+              "is_anonymous",
+              "category",
+              "status",
+              "upvotes",
+          ]],
+          use_container_width=True,
+      )
+
+      st.markdown("---")
+      st.subheader("✍️ Respond / Update Status")
+
+      selected_id = st.selectbox(
+          "Select Post ID to Manage", admin_df["id"].tolist()
+      )
+
+      if selected_id:
+        row_data = admin_df[admin_df["id"] == selected_id].iloc[0]
+        st.markdown(
+            f"**Real Employee:** {row_data['employee_name']} (Psoft:"
+            f" {row_data['psoft_no']} | AMZ ID: {row_data['amz_id']})"
+        )
+        st.markdown(f"**Message:** {row_data['message']}")
+
+        with st.form("admin_reply"):
+          new_stat = st.selectbox(
+              "Update Status",
+              ["Open", "In Progress", "Resolved", "Closed"],
+              index=(
+                  ["Open", "In Progress", "Resolved", "Closed"].index(
+                      row_data["status"]
+                  )
+                  if row_data["status"]
+                  in ["Open", "In Progress", "Resolved", "Closed"]
+                  else 0
+              ),
+          )
+          new_resp = st.text_area(
+              "Official QuessCorp Response", value=row_data["reply"]
+          )
+
+          save_btn = st.form_submit_button("Publish Response & Update Status")
+
+          if save_btn:
+            conn = sqlite3.connect("myvoice_portal.db")
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                            UPDATE complaints 
+                            SET status = ?, reply = ? 
+                            WHERE id = ?
+                        """,
+                (new_stat, new_resp, selected_id),
+            )
+            conn.commit()
+            conn.close()
+            st.success("✅ Response update ho gaya hai!")
+            st.rerun()
+
+  elif admin_pass != "":
+    st.error("❌ Galat password! (Default password: `quess123`)")
