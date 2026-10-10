@@ -236,17 +236,14 @@ if not st.session_state.logged_in:
   with col2:
     with st.form("login_form", clear_on_submit=False):
       st.markdown(
-          f"""
-          <div style="text-align: left; margin-bottom: 20px;">
-              {login_logo}
-              <div style="font-size: 11px; font-weight: 700; color: #007185; margin-bottom: 5px; letter-spacing: 1px; text-transform: uppercase;">Your voice matters</div>
-              <div style="font-size: 26px; font-weight: 700; margin-bottom: 10px; color: #0f1111;">Welcome to QuessConnect</div>
-              <div style="color: #565959; font-size: 14px; margin-bottom: 25px;">Share feedback, raise a concern, or recognise something that is working well.</div>
-              
-              <h3 style="margin-bottom: 5px; font-size: 16px; color: #0f1111;">Associate login</h3>
-              <p style="color: #565959; font-size: 13px; margin-bottom: 10px;">Sign in with your roster AMZ ID. Site is set to DXB5.</p>
-          </div>
-          """,
+          f"""<div style="text-align: left; margin-bottom: 20px;">
+{login_logo}
+<div style="font-size: 11px; font-weight: 700; color: #007185; margin-bottom: 5px; letter-spacing: 1px; text-transform: uppercase;">Your voice matters</div>
+<div style="font-size: 26px; font-weight: 700; margin-bottom: 10px; color: #0f1111;">Welcome to QuessConnect</div>
+<div style="color: #565959; font-size: 14px; margin-bottom: 25px;">Share feedback, raise a concern, or recognise something that is working well.</div>
+<h3 style="margin-bottom: 5px; font-size: 16px; color: #0f1111;">Associate login</h3>
+<p style="color: #565959; font-size: 13px; margin-bottom: 10px;">Sign in with your roster AMZ ID. Site is set to DXB5.</p>
+</div>""",
           unsafe_allow_html=True,
       )
       
