@@ -64,7 +64,6 @@ st.markdown(
     .brand-title { font-size:19px; font-weight:700; margin-top:4px; }
     .brand-sub { font-size:12px; color:rgba(255,255,255,.76); margin-top:4px; }
     .site-pill { border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:8px 13px; font-size:12px; font-weight:700; white-space:nowrap; }
-    .welcome { color:rgba(255,255,255,.85); font-size:12px; margin-top:9px; }
     .eyebrow { color:var(--quess-blue); text-transform:uppercase; letter-spacing:1.6px; font-size:10px; font-weight:800; }
     .page-title { font-family:'Manrope',sans-serif; font-size:27px; font-weight:800; letter-spacing:-.04em; margin:3px 0 4px; }
     .page-subtitle { color:var(--muted); font-size:14px; margin-bottom:18px; }
@@ -90,4 +89,21 @@ st.markdown(
     .status-progress { background:#e5f1ff; color:#07599a; }
     .status-resolved { background:#e4f7ec; color:#147442; }
     .status-closed { background:#edf0f3; color:#526170; }
-    .post-message { font-size
+    .post-message { font-size:14px; line-height:1.72; color:#34495a; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .anon-chip { display:inline-block; margin-left:8px; border-radius:5px; background:#fff0dc; color:#8d5600; padding:3px 6px; font-size:10px; font-weight:800; vertical-align:2px; }
+    .response-box { background:#f2f7fb; border:1px solid #dceaf5; border-left:3px solid var(--quess-blue); border-radius:9px; padding:14px 16px; margin:12px 0; }
+    .response-title { color:var(--quess-blue); font-size:12px; font-weight:800; margin-bottom:5px; }
+    .response-text { color:#435565; font-size:13px; line-height:1.6; white-space:pre-wrap; }
+    .login-wrap { max-width:610px; margin:3.2rem auto 0; }
+    .login-panel { background:#fff; border:1px solid var(--line); border-radius:18px; padding:26px 28px 12px; box-shadow:0 12px 32px rgba(18,47,72,.06); }
+    div.stButton > button, div.stFormSubmitButton > button {
+      border-radius:9px; font-weight:700; min-height:42px; border:1px solid #d5e0e9;
+      transition:all .15s ease;
+    }
+    div.stButton > button[kind="primary"], div.stFormSubmitButton > button[kind="primary"] {
+      background:var(--quess-blue); border-color:var(--quess-blue); color:white;
+    }
+    div.stButton > button[kind="primary"]:hover, div.stFormSubmitButton > button[kind="primary"]:hover {
+      background:#003761; border-color:#003761; color:white;
+    }
+    div[data-baseweb="select"] >
