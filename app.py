@@ -318,22 +318,60 @@ st.session_state.setdefault("confirm_del", None)
 # ----------------------------- Login ---------------------------------
 if not st.session_state.logged_in:
 
-    st.write("")
-    st.write("")
-    st.write("")
+    st.markdown(
+        """
+        <style>
+        .block-container { max-width:1020px; padding-top:7vh !important; }
+        .lg-panel { background:linear-gradient(145deg,#003a6b 0%,#004b87 55%,#0a6cc4 100%); border-radius:20px;
+          padding:40px 38px; min-height:500px; color:#fff; position:relative; overflow:hidden;
+          box-shadow:0 18px 40px rgba(0,75,135,.25); }
+        .lg-panel:before { content:""; position:absolute; right:-90px; top:-90px; width:260px; height:260px;
+          border-radius:50%; background:rgba(255,255,255,.08); }
+        .lg-panel:after { content:""; position:absolute; left:-70px; bottom:-90px; width:230px; height:230px;
+          border-radius:50%; background:rgba(255,153,0,.22); }
+        .lg-brand { display:flex; align-items:center; gap:12px; position:relative; z-index:1; }
+        .lg-q { width:46px; height:46px; border-radius:50%; background:#fff; color:#004b87; font-weight:800;
+          font-size:26px; display:flex; align-items:center; justify-content:center; }
+        .lg-brand b { font-size:22px; font-weight:800; letter-spacing:-.3px; }
+        .lg-h { font-size:34px; font-weight:800; line-height:1.15; margin:46px 0 12px; position:relative; z-index:1; }
+        .lg-h span { color:#ffb84d; }
+        .lg-p { font-size:14.5px; line-height:1.6; color:#d6e6f7; max-width:330px; position:relative; z-index:1; }
+        .lg-list { margin-top:34px; display:flex; flex-direction:column; gap:14px; position:relative; z-index:1; }
+        .lg-item { display:flex; align-items:center; gap:12px; font-size:14px; font-weight:500; }
+        .lg-item i { width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.16);
+          display:flex; align-items:center; justify-content:center; font-style:normal; font-size:15px; }
+        .lg-tag { font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#004b87; margin-bottom:6px; }
+        .lg-title { font-size:28px; font-weight:800; color:#0f172a; letter-spacing:-.5px; margin-bottom:6px; }
+        .lg-sub { font-size:13.5px; color:#64748b; margin-bottom:22px; line-height:1.5; }
+        .lg-label { font-size:13px; font-weight:700; color:#0f172a; margin-bottom:6px; }
+        .lg-foot { font-size:12px; color:#94a3b8; text-align:center; margin-top:14px; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
+    left, right = st.columns([1.1, 1], gap="large", vertical_alignment="center")
+    with left:
+        st.markdown(
+            "<div class='lg-panel'>"
+            "<div class='lg-brand'><div class='lg-q'>Q</div><b>QuessConnect</b></div>"
+            "<div class='lg-h'>Your voice,<br><span>heard.</span></div>"
+            "<div class='lg-p'>A safe space for the DXB5 team to share feedback, raise concerns and recognise great work.</div>"
+            "<div class='lg-list'>"
+            "<div class='lg-item'><i>💬</i>Post openly or anonymously</div>"
+            "<div class='lg-item'><i>🛡️</i>Management reads and responds</div>"
+            "<div class='lg-item'><i>👍</i>Upvote what matters to you</div>"
+            "</div></div>",
+            unsafe_allow_html=True,
+        )
+    with right:
         with st.form("login_form", clear_on_submit=False):
             st.markdown(
-                f"""<div style="text-align: left; margin-bottom: 20px;">
-                {login_logo}
-                <div style="font-size: 11px; font-weight: 700; color: #004b87; margin-bottom: 5px; letter-spacing: 1px; text-transform: uppercase;">Your voice matters</div>
-                <div style="font-size: 26px; font-weight: 800; margin-bottom: 10px; color: #0f172a;">Welcome to QuessConnect</div>
-                <div style="color: #64748b; font-size: 14px; margin-bottom: 25px;">Share feedback, raise a concern, or recognise something that is working well.</div>
-                <h3 style="margin-bottom: 5px; font-size: 16px; color: #0f172a;">Associate login</h3>
-                <p style="color: #64748b; font-size: 13px; margin-bottom: 10px;">Sign in with your roster AMZ ID. Site is set to DXB5.</p>
-                </div>""",
+                f"""<div>{login_logo if logo_b64 else ''}
+                <div class="lg-tag">Associate login</div>
+                <div class="lg-title">Welcome back</div>
+                <div class="lg-sub">Sign in with your roster AMZ ID to continue. Site is set to {SITE}.</div>
+                <div class="lg-label">AMZ ID</div></div>""",
                 unsafe_allow_html=True,
             )
 
@@ -341,6 +379,7 @@ if not st.session_state.logged_in:
                 "AMZ ID", placeholder="Enter your AMZ ID", label_visibility="collapsed", autocomplete="username"
             )
             login_btn = st.form_submit_button("Continue", type="primary", use_container_width=True)
+            st.markdown("<div class='lg-foot'>Trouble signing in? Contact HR Operations.</div>", unsafe_allow_html=True)
 
         if login_btn:
             amz_clean = str(amz_input).strip().lower()
@@ -403,7 +442,7 @@ else:
             category = st.selectbox("Category", CATEGORIES)
             message = st.text_area("Your comment", placeholder="Type your message here...", height=120)
 
-            post_anonymous = st.toggle("Post as Anonymous (Hide identity on feed)", value=True)
+            post_anonymous = st.toggle("Post as Anonymous (Hide identity on feed)", value=False)
 
             st.write("")
             f1, f2 = st.columns([1, 1])
