@@ -2,16 +2,51 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 
-# Page Configuration
+# Page Configuration (Wide layout for Amazon Workforce style)
 st.set_page_config(
-    page_title="QuessCorp - Voice of Associate (VoA)",
-    page_icon="🗣️",
-    layout="wide",
+    page_title="Workforce A to Z - MyVoice", page_icon="🗣️", layout="wide"
 )
+
+# Custom CSS for Amazon A to Z MyVoice Look & Feel
+st.markdown(
+    """
+    <style>
+        .main { background-color: #f8f9fa; }
+        .stButton>button {
+            background-color: #ff9900;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            border: none;
+        }
+        .stButton>button:hover {
+            background-color: #e88b00;
+            color: white;
+        }
+        .card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .response-box {
+            background-color: #f1f3f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 4px solid #ff9900;
+        }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
 
 # Database Setup
 def init_db():
-  conn = sqlite3.connect("voa_portal.db")
+  conn = sqlite3.connect("myvoice_portal.db")
   cursor = conn.cursor()
   cursor.execute(
       """
@@ -20,10 +55,12 @@ def init_db():
             psoft_no TEXT,
             amz_id TEXT,
             employee_name TEXT,
+            is_anonymous INTEGER,
             category TEXT,
             message TEXT,
             status TEXT,
             reply TEXT,
+            upvotes INTEGER DEFAULT 0,
             date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """
@@ -35,7 +72,7 @@ def init_db():
 init_db()
 
 
-# Load Employee Roster from Excel
+# Load Employee Roster
 @st.cache_data
 def load_roster():
   try:
@@ -48,120 +85,188 @@ def load_roster():
 
 roster_df = load_roster()
 
-# Sidebar Navigation
-st.sidebar.title("🗣️ QuessCorp VoA Portal")
-st.sidebar.markdown(
-    "**Voice of Associate** - Aapki awaz, hamari zimmedari! [cite:"
-    "DMD-DXB5-07102026.xlsx]"
+# Top Header Navigation Bar (A to Z Style)
+st.markdown(
+    """
+    <div style="display: flex; align-items: center; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #232f3e; font-size: 22px;">workforce <span style="color: #ff9900;">a to z</span></h2>
+        <span style="margin-left: 30px; font-weight: bold; font-size: 18px; color: #0073bb; border-bottom: 3px solid #0073bb; padding-bottom: 8px;">MyVoice</span>
+    </div>
+""",
+    unsafe_allow_html=True,
 )
+
+# App Mode (Tabs or Sidebar)
 app_mode = st.sidebar.selectbox(
-    "Choose Portal Mode", ["Associate Portal", "QuessCorp Admin Panel"]
+    "Navigation Mode", ["MyVoice Feed", "QuessCorp Admin Panel"]
 )
 
 # -------------------------------------------------------------
-# 1. ASSOCIATE PORTAL
+# 1. MYVOICE FEED (ASSOCIATE PORTAL)
 # -------------------------------------------------------------
-if app_mode == "Associate Portal":
-  st.title("🛡️ QuessCorp Voice of Associate (VoA)")
-  st.markdown(
-      "Yahan aap apni complaint ya feedback bilkul **Anonymous** tarike se"
-      " darj kar sakte hain. Public feed par aapki pehchan chupayi jayegi!"
-  )
+if app_mode == "MyVoice Feed":
+  # Top Filter & Search Bar Row like image
+  col_filter, col_search, col_btn = st.columns([1.5, 3, 1])
 
-  with st.form("complaint_form"):
-    st.subheader("📝 Register New Complaint")
-
-    col1, col2 = st.columns(2)
-    with col1:
-      psoft_input = st.text_input(
-          "Enter your Psoft No (e.g., 204228003):",
-          placeholder="Apna Psoft No dalein",
-      )
-    with col2:
-      amz_input = st.text_input(
-          "Enter your AMZ ID (e.g., brooabra):",
-          placeholder="Apni AMZ ID dalein",
-      )
-
-    category = st.selectbox(
-        "Complaint Category",
-        [
-            "Payroll / Salary",
-            "Transport / Attendance",
-            "Harrassment / Workplace Issue",
-            "Medical / Insurance",
-            "General Feedback",
-            "Other",
-        ],
+  with col_filter:
+    site_filter = st.selectbox(
+        "Site", ["DXB5 VOA", "DXB8 VOA", "DWC3 VOA"], label_visibility="collapsed"
     )
 
-    message = st.text_area(
-        "Your Message / Complaint Details",
-        placeholder="Apni poori baat yahan likhein...",
+  with col_search:
+    search_query = st.text_input(
+        "Search",
+        placeholder="Search comments by keyword, author, etc.",
+        label_visibility="collapsed",
     )
 
-    submit_btn = st.form_submit_button("Submit Complaint Anonymously")
+  with col_btn:
+    open_new_comment = st.button("+ New Comment", use_container_width=True)
 
-    if submit_btn:
-      if not psoft_input or not amz_input or not message:
-        st.error(
-            "⚠️ Kripya Psoft No, AMZ ID aur Message sabhi fields bharein!"
+  # Modal / Expandable Form for New Comment when clicked
+  if open_new_comment:
+    st.session_state["show_form"] = True
+
+  if st.session_state.get("show_form", False):
+    with st.form("new_comment_form"):
+      st.subheader("💬 Create New MyVoice Comment")
+      col1, col2 = st.columns(2)
+      with col1:
+        psoft_input = st.text_input(
+            "Enter Psoft No:", placeholder="e.g. 204228003"
         )
-      elif roster_df is None:
-        st.error("⚠️ System error: Roster file nahi mil saki!")
-      else:
-        psoft_clean = str(psoft_input).strip()
-        amz_clean = str(amz_input).strip().lower()
+      with col2:
+        amz_input = st.text_input("Enter AMZ ID:", placeholder="e.g. brooabra")
 
-        matched_emp = roster_df[
-            (roster_df["Psoft No"].astype(str).str.strip() == psoft_clean)
-            & (
-                roster_df["AMZ ID"]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                == amz_clean
-            )
-        ]
+      post_anonymous = st.checkbox(
+          "Post as Anonymous (Aapka naam public feed par nahi dikhega)",
+          value=True,
+      )
+      category = st.selectbox(
+          "Category",
+          [
+              "Payroll / Salary",
+              "Transport / Attendance",
+              "Workplace Management",
+              "Medical / Insurance",
+              "Appreciation / Feedback",
+          ],
+      )
+      message = st.text_area(
+          "Your Message", placeholder="Apni baat yahan tafseel se likhein..."
+      )
 
-        if not matched_emp.empty:
-          emp_name = matched_emp.iloc[0]["Employee Name"]
+      col_sub1, col_sub2 = st.columns(2)
+      with col_sub1:
+        submit_comment = st.form_submit_button("Submit Post")
+      with col_sub2:
+        cancel_comment = st.form_submit_button("Cancel")
 
-          conn = sqlite3.connect("voa_portal.db")
-          cursor = conn.cursor()
-          cursor.execute(
-              """
-                        INSERT INTO complaints (psoft_no, amz_id, employee_name, category, message, status, reply)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-              (
-                  psoft_clean,
-                  amz_clean,
-                  emp_name,
-                  category,
-                  message,
-                  "Open",
-                  "Awaiting response...",
-              ),
-          )
-          conn.commit()
-          conn.close()
+      if cancel_comment:
+        st.session_state["show_form"] = False
+        st.rerun()
 
-          st.success(
-              "🎉 Aapki complaint safalpurvak register ho gayi hai! Public"
-              " board par yeh Anonymous dikhegi."
-          )
+      if submit_comment:
+        if not psoft_input or not amz_input or not message:
+          st.error("⚠️ Kripya sabhi fields mukammal bharein!")
+        elif roster_df is None:
+          st.error("⚠️ Roster data load nahi ho saka.")
         else:
-          st.error(
-              "❌ Galat Psoft No ya AMZ ID! Kripya apne sahi credentials"
-              " dalein jo roster mein maujood hain."
-          )
+          psoft_clean = str(psoft_input).strip()
+          amz_clean = str(amz_input).strip().lower()
+
+          matched = roster_df[
+              (roster_df["Psoft No"].astype(str).str.strip() == psoft_clean)
+              & (
+                  roster_df["AMZ ID"]
+                  .astype(str)
+                  .str.strip()
+                  .str.lower()
+                  == amz_clean
+              )
+          ]
+
+          if not matched.empty:
+            emp_name = matched.iloc[0]["Employee Name"]
+            conn = sqlite3.connect("myvoice_portal.db")
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                            INSERT INTO complaints (psoft_no, amz_id, employee_name, is_anonymous, category, message, status, reply, upvotes)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                (
+                    psoft_clean,
+                    amz_clean,
+                    emp_name,
+                    1 if post_anonymous else 0,
+                    category,
+                    message,
+                    "Open",
+                    "Thank you for taking the time to share this. Your feedback has been received — we're reviewing it with the relevant team.",
+                    0,
+                ),
+            )
+            conn.commit()
+            conn.close()
+            st.success("🎉 Post safalpurvak publish ho gayi hai!")
+            st.session_state["show_form"] = False
+            st.rerun()
+          else:
+            st.error(
+                "❌ Galat Psoft No ya AMZ ID! Roster ke mutabiq sahi details"
+                " dalein."
+            )
 
   st.markdown("---")
-  st.subheader("📢 Public Complaint Feed (Anonymous View)")
-  st.markdown(
-      "Yahan sabhi associates ki complaints anonymous roop mein dikhti hain."
-  )
 
-  conn = sqlite3.connect("voa_portal.db")
-  public_df = pd.read
+  # Fetch posts from DB
+  conn = sqlite3.connect("myvoice_portal.db")
+  query_str = "SELECT * FROM complaints ORDER BY id DESC"
+  feed_df = pd.read_sql(query_str, conn)
+  conn.close()
+
+  if feed_df.empty:
+    st.info(
+        "Abhi koi comment ya post nahi hai. Upar '+ New Comment' par click karke"
+        " pehli post dalein!"
+    )
+  else:
+    # Filter by search query if entered
+    if search_query:
+      feed_df = feed_df[
+          feed_df["message"].str.contains(search_query, case=False, na=False)
+          | feed_df["category"].str.contains(
+              search_query, case=False, na=False
+          )
+      ]
+
+    for index, row in feed_df.iterrows():
+      # Determine author display name
+      if row["is_anonymous"] == 1:
+        author_display = "Anonymous"
+      else:
+        author_display = f"{row['employee_name']} (@{row['amz_id']})"
+
+      status_badge = row["status"]
+
+      # Card Layout
+      with st.container():
+        st.markdown(
+            f"""
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <span style="font-weight: bold; font-size: 15px; color: #232f3e;">👤 {author_display}</span>
+                            <span style="color: #666; font-size: 13px; margin-left: 10px;">• {row['date']}</span>
+                        </div>
+                        <div>
+                            <span style="background-color: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">📌 {status_badge}</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: #0073bb; font-weight: bold; margin-bottom: 8px;">Category: {row['category']}</div>
+                    <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 15px;">
+                        {row['message']}
+                    </div>
+            """,
+            unsafe_allow
