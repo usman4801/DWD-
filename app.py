@@ -282,3 +282,59 @@ else:
     with c2:
         search_query = st.text_input("Search", placeholder="🔍 Search comments by keyword, author, etc.", label_visibility="collapsed")
     with c3:
+        if st.button("Log out", use_container_width=True):
+            for key in ["logged_in", "amz_id", "emp_name", "site", "show_form"]:
+                st.session_state[key] = False if key == "logged_in" or key == "show_form" else ""
+            st.rerun()
+    with c4:
+        if st.button("+ New Comment", type="primary", use_container_width=True):
+            st.session_state.show_form = not st.session_state.show_form
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if st.session_state.show_form:
+        st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
+        with st.form("new_comment_form", clear_on_submit=True):
+            st.markdown("### Create New Comment")
+            category = st.selectbox("Category", CATEGORIES)
+            message = st.text_area("Your comment", placeholder="Type your message here...", height=120)
+            
+            post_anonymous = st.toggle("Post as Anonymous (Hide identity on feed)", value=True)
+            
+            st.write("")
+            f1, f2 = st.columns([1, 1])
+            with f1:
+                submit_comment = st.form_submit_button("Submit", type="primary", use_container_width=True)
+            with f2:
+                cancel_comment = st.form_submit_button("Cancel", use_container_width=True)
+                
+        if cancel_comment:
+            st.session_state.show_form = False
+            st.rerun()
+        if submit_comment:
+            if not message.strip():
+                st.error("Comment cannot be empty.")
+            else:
+                with db_connect() as conn:
+                    conn.execute(
+                        """INSERT INTO complaints
+                                    (amz_id, employee_name, site, is_anonymous, category, message, status, reply, upvotes)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            st.session_state.amz_id,
+                            st.session_state.emp_name,
+                            SITE,
+                            1 if post_anonymous else 0,
+                            category,
+                            message.strip(),
+                            "Open",
+                            "",
+                            0,
+                        ),
+                    )
+                st.session_state.show_form = False
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # Fetch Feed
+    with db_connect() as conn:
+        all_posts = pd.read_sql_query("
