@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="QuessCorp - Voice of Associate", page_icon="🗣️", layout="wide"
 )
 
-# Custom CSS for Professional Corporate Branding
+# Custom CSS Styling
 st.markdown(
     """
     <style>
@@ -60,7 +60,6 @@ def init_db():
       """
         CREATE TABLE IF NOT EXISTS complaints (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            psoft_no TEXT,
             amz_id TEXT,
             employee_name TEXT,
             site TEXT,
@@ -97,20 +96,20 @@ roster_df = load_roster()
 # Session State Initialization for Login
 if "logged_in" not in st.session_state:
   st.session_state["logged_in"] = False
-  st.session_state["psoft"] = ""
   st.session_state["amz_id"] = ""
   st.session_state["emp_name"] = ""
-  st.session_state["site"] = ""
+  st.session_state["site"] = "DXB5"
 
 # -------------------------------------------------------------
-# LOGIN SCREEN (If not authenticated)
+# LOGIN SCREEN (AMZ ID Only & Site fixed to DXB5)
 # -------------------------------------------------------------
 if not st.session_state["logged_in"]:
   st.markdown(
       """
-        <div style="text-align: center; padding: 40px 0;">
-            <h1 style="color: #004b87; margin-bottom: 5px;">QUESSCORP</h1>
-            <h3 style="color: #475569; font-weight: 400;">Voice of Associate (VoA) Portal</h3>
+        <div style="text-align: center; padding: 30px 0;">
+            <h2 style="color: #004b87; margin-bottom: 5px;">QUESS</h2>
+            <p style="color: #666; font-size: 14px; font-weight: bold; letter-spacing: 1px;">WINNING TOGETHER</p>
+            <h3 style="color: #333; margin-top: 10px;">Voice of Associate (VoA) Portal</h3>
         </div>
     """,
       unsafe_allow_html=True,
@@ -119,83 +118,80 @@ if not st.session_state["logged_in"]:
   col1, col2, col3 = st.columns([1, 1.5, 1])
   with col2:
     with st.form("login_form"):
-      st.subheader("Employee Login")
-      site_select = st.selectbox(
-          "Select Site", ["DXB5", "DXB8", "DWC3"], index=0
+      st.subheader("Associate Login")
+      st.info("Site is fixed to: **DXB5**")
+      amz_input = st.text_input(
+          "Enter your AMZ ID", placeholder="e.g. brooabra"
       )
-      psoft_input = st.text_input(
-          "Psoft Number", placeholder="Enter your Psoft No"
-      )
-      amz_input = st.text_input("AMZ ID", placeholder="Enter your AMZ ID")
 
       login_btn = st.form_submit_button("Login to Portal", use_container_width=True)
 
       if login_btn:
-        psoft_clean = str(psoft_input).strip()
         amz_clean = str(amz_input).strip().lower()
 
-        # Check special management logins: quesscorp or javmuhak
+        # Management accounts check
         if amz_clean in ["quesscorp", "javmuhak"]:
           st.session_state["logged_in"] = True
-          st.session_state["psoft"] = "ADMIN"
           st.session_state["amz_id"] = amz_clean
           st.session_state["emp_name"] = (
               "QuessCorp Management"
               if amz_clean == "quesscorp"
               else "Javmuhak"
           )
-          st.session_state["site"] = site_select
+          st.session_state["site"] = "DXB5"
           st.success("Management Login Successful!")
           st.rerun()
 
         elif roster_df is not None:
           matched = roster_df[
-              (roster_df["Psoft No"].astype(str).str.strip() == psoft_clean)
-              & (
-                  roster_df["AMZ ID"]
-                  .astype(str)
-                  .str.strip()
-                  .str.lower()
-                  == amz_clean
-              )
+              roster_df["AMZ ID"]
+              .astype(str)
+              .str.strip()
+              .str.lower()
+              == amz_clean
           ]
 
           if not matched.empty:
             st.session_state["logged_in"] = True
-            st.session_state["psoft"] = psoft_clean
             st.session_state["amz_id"] = amz_clean
             st.session_state["emp_name"] = matched.iloc[0]["Employee Name"]
-            st.session_state["site"] = site_select
+            st.session_state["site"] = "DXB5"
             st.success("Login Successful!")
             st.rerun()
           else:
-            st.error("Invalid Psoft Number or AMZ ID according to roster.")
+            st.error("Invalid AMZ ID! Please check your roster ID.")
         else:
           st.error("Roster file could not be loaded.")
 
 # -------------------------------------------------------------
-# MAIN PORTAL (After Successful Login)
+# MAIN PORTAL FEED
 # -------------------------------------------------------------
 else:
   is_management = st.session_state["amz_id"].lower() in ["quesscorp", "javmuhak"]
 
-  # Top Header
+  # Header with Quess Branding
   st.markdown(
       f"""
         <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #004b87; padding-bottom: 10px; margin-bottom: 20px;">
-            <div>
-                <h2 style="margin: 0; color: #004b87; font-size: 24px; font-weight: 700;">QUESSCORP VOA PORTAL</h2>
-                <span style="font-size: 13px; color: #666; font-weight: 500;">Welcome, <b>{st.session_state['emp_name']}</b> ({st.session_state['amz_id']})</span>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div>
+                    <h3 style="margin: 0; color: #004b87; font-weight: 800; letter-spacing: 0.5px;">QUESS</h3>
+                    <span style="font-size: 10px; color: #333; font-weight: bold;">WINNING TOGETHER</span>
+                </div>
+                <div style="border-left: 1px solid #ccc; padding-left: 15px;">
+                    <h4 style="margin: 0; color: #1e293b;">Voice of Associate (VoA)</h4>
+                    <span style="font-size: 12px; color: #666;">Welcome, <b>{st.session_state['emp_name']}</b> (@{st.session_state['amz_id']})</span>
+                </div>
             </div>
             <div>
-                <span style="background-color: #e2e8f0; color: #1e293b; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold;">Site: {st.session_state['site']}</span>
+                <span style="background-color: #004b87; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">Site: DXB5</span>
             </div>
         </div>
     """,
       unsafe_allow_html=True,
   )
 
-  # Logout button on top right
+  # Logout button row
   col_logout1, col_logout2 = st.columns([6, 1])
   with col_logout2:
     if st.button("Logout", use_container_width=True):
@@ -232,7 +228,7 @@ else:
   if open_new_comment:
     st.session_state["show_form"] = True
 
-  # New Comment Submission Form
+  # New Comment Form
   if st.session_state.get("show_form", False):
     with st.form("new_comment_form"):
       st.subheader("Register New Complaint / Feedback")
@@ -274,14 +270,13 @@ else:
           cursor = conn.cursor()
           cursor.execute(
               """
-                        INSERT INTO complaints (psoft_no, amz_id, employee_name, site, is_anonymous, category, message, status, reply, upvotes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO complaints (amz_id, employee_name, site, is_anonymous, category, message, status, reply, upvotes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
               (
-                  st.session_state["psoft"],
                   st.session_state["amz_id"],
                   st.session_state["emp_name"],
-                  st.session_state["site"],
+                  "DXB5",
                   1 if post_anonymous else 0,
                   category,
                   message,
@@ -321,13 +316,11 @@ else:
     for index, row in feed_df.iterrows():
       # Determine author presentation based on role
       if is_management:
-        # Management always sees real identity + tag if anonymous
         if row["is_anonymous"] == 1:
           author_display = f"{row['employee_name']} (@{row['amz_id']}) <span class='management-badge'>[Anonymous Report]</span>"
         else:
           author_display = f"{row['employee_name']} (@{row['amz_id']})"
       else:
-        # Normal users see Anonymous if is_anonymous == 1
         if row["is_anonymous"] == 1:
           author_display = "Anonymous"
         else:
@@ -348,7 +341,7 @@ else:
                         <span style="background-color: #e2e8f0; color: #1e293b; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">Status: {status_badge}</span>
                     </div>
                 </div>
-                <div style="font-size: 12px; color: #004b87; font-weight: bold; margin-bottom: 8px;">Category: {row['category']} | Site: {row['site']}</div>
+                <div style="font-size: 12px; color: #004b87; font-weight: bold; margin-bottom: 8px;">Category: {row['category']} | Site: DXB5</div>
                 <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 15px;">
                     {row['message']}
                 </div>
@@ -386,7 +379,7 @@ else:
             unsafe_allow_html=True,
         )
 
-      # INLINE REPLY OPTION EXCLUSIVE TO MANAGEMENT (`quesscorp` or `javmuhak`)
+      # INLINE REPLY OPTION EXCLUSIVE TO `quesscorp` and `javmuhak`
       if is_management:
         with st.expander(f"⚙️ Reply / Manage Post #{row['id']}"):
           with st.form(f"mgmt_reply_{row['id']}"):
