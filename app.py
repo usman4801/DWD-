@@ -118,8 +118,6 @@ st.markdown(
     .responder-name { font-weight: 700; font-size: 14px; color: var(--ink); }
     .responder-title { font-size: 12px; color: var(--muted); }
     .response-text { font-size: 14px; line-height: 1.6; color: var(--ink); }
-    
-    .ghost-btn { background: white !important; color: var(--ink) !important; border: 1px solid #888c8c !important; border-radius: 20px !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -134,8 +132,7 @@ def db_connect():
 
 def init_db():
     with db_connect() as conn:
-        conn.execute(
-            """
+        q_create = """
             CREATE TABLE IF NOT EXISTS complaints (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 amz_id TEXT NOT NULL,
@@ -149,8 +146,8 @@ def init_db():
                 upvotes INTEGER NOT NULL DEFAULT 0,
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-            """
-        )
+        """
+        conn.execute(q_create)
 
 
 @st.cache_data(show_spinner=False)
@@ -315,10 +312,13 @@ else:
                 st.error("Comment cannot be empty.")
             else:
                 with db_connect() as conn:
+                    q_insert = """
+                        INSERT INTO complaints 
+                        (amz_id, employee_name, site, is_anonymous, category, message, status, reply, upvotes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
                     conn.execute(
-                        """INSERT INTO complaints
-                                    (amz_id, employee_name, site, is_anonymous, category, message, status, reply, upvotes)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        q_insert,
                         (
                             st.session_state.amz_id,
                             st.session_state.emp_name,
@@ -335,6 +335,109 @@ else:
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Fetch Feed
+    # Fetch Feed securely
     with db_connect() as conn:
-        all_posts = pd.read_sql_query("
+        q_select = "SELECT * FROM complaints ORDER BY id DESC"
+        all_posts = pd.read_sql_query(q_select, conn)
+
+    st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
+    
+    if all_posts.empty:
+        st.info("No comments yet.")
+    else:
+        feed_df = all_posts.copy()
+        if search_query.strip():
+            q = search_query.strip()
+            mask = (
+                feed_df["message"].astype(str).str.contains(q, case=False, na=False)
+                | feed_df["category"].astype(str).str.contains(q, case=False, na=False)
+            )
+            feed_df = feed_df[mask]
+
+        for _, post in feed_df.iterrows():
+            anonymous = int(post["is_anonymous"] or 0) == 1
+            time_ago = format_time_ago(post["date"])
+            status = str(post["status"] or "Open")
+            
+            is_post_mgmt = str(post["amz_id"]).lower() in MANAGEMENT_IDS
+            
+            # Avatar and Name logic
+            if is_post_mgmt and not anonymous:
+                author_name = f"<span style='color: #004b87; font-weight: 800; font-size: 15px;'>{safe(post['employee_name'])}</span> <span style='font-size: 11px; background: #e2e8f0; color: #004b87; padding: 2px 6px; border-radius: 4px; margin-left: 5px;'>ADMIN</span>"
+                avatar_html = admin_avatar
+            elif anonymous:
+                author_name = "Anonymous"
+                avatar_html = '<div class="avatar">👤</div>'
+                if management:
+                    author_name = f"Anonymous (Real: {safe(post['employee_name'])} @{safe(post['amz_id'])})"
+            else:
+                author_name = f"{safe(post['employee_name'])}@"
+                avatar_html = '<div class="avatar">👤</div>'
+
+            message_html = safe(post["message"])
+            upvotes = int(post["upvotes"] or 0)
+
+            # Use short formatted HTML strings to avoid Streamlit parsing errors
+            post_html = f"""<div class='post-card'>
+            <div class='post-header'>
+            <div class='post-author'>{avatar_html}<div>{author_name} &nbsp;&middot;&nbsp; {time_ago}</div></div>
+            <div class='post-status'>🕑 {safe(status)}</div>
+            </div>
+            <div class='post-body'>{message_html}</div>
+            <div class='post-actions'><div class='upvote-text'>＋ {upvotes}</div></div>
+            </div>"""
+            
+            st.markdown(post_html, unsafe_allow_html=True)
+
+            # Upvote Button (Streamlit overlay)
+            c_up, c_space = st.columns([1, 10])
+            with c_up:
+                if st.button("Upvote", key=f"up_{post['id']}", help="Like this post"):
+                    with db_connect() as conn:
+                        conn.execute("UPDATE complaints SET upvotes = upvotes + 1 WHERE id = ?", (int(post["id"]),))
+                    st.rerun()
+
+            # Response Section
+            reply = str(post["reply"] or "").strip()
+            if reply:
+                reply_html = f"""<div class="response-section">
+                <div class="response-header">Response</div>
+                <div class="response-box-inner">
+                <div class="responder-info">
+                {admin_avatar}
+                <div>
+                <div class="responder-name">QuessCorp Management &nbsp;·&nbsp; Just now</div>
+                <div class="responder-title">HR Operations</div>
+                </div>
+                </div>
+                <div class="response-text">{safe(reply)}</div>
+                </div>
+                </div>"""
+                
+                st.markdown(reply_html, unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Management Edit & Delete
+            if management:
+                with st.expander(f"⚙️ Manage post #{int(post['id'])}"):
+                    with st.form(f"manage_{int(post['id'])}"):
+                        selected_status = st.selectbox("Status", STATUSES, index=STATUSES.index(status) if status in STATUSES else 0)
+                        response_text = st.text_area("HR Response", value=reply)
+                        
+                        col_btn1, col_btn2 = st.columns(2)
+                        with col_btn1:
+                            save = st.form_submit_button("Save Update", type="primary")
+                        with col_btn2:
+                            delete = st.form_submit_button("🗑️ Delete Post")
+                            
+                        if save:
+                            with db_connect() as conn:
+                                conn.execute("UPDATE complaints SET status = ?, reply = ? WHERE id = ?", (selected_status, response_text.strip(), int(post["id"])))
+                            st.rerun()
+                        if delete:
+                            with db_connect() as conn:
+                                conn.execute("DELETE FROM complaints WHERE id = ?", (int(post["id"]),))
+                            st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
