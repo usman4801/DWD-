@@ -505,14 +505,16 @@ if "logged_in" not in st.session_state:
 st.session_state.setdefault("reply_open", None)
 st.session_state.setdefault("confirm_del", None)
 
-# Visible warning lets the app owner know if remote persistence is not working.
-if st.session_state.get("github_backup_notice"):
-    st.warning(st.session_state["github_backup_notice"])
-elif not github_settings():
-    st.warning(
-        "GitHub backup is not configured yet. Comments may be lost if the app's local storage resets. "
-        "Add the GitHub settings shown in the app.py comments to enable persistent backups."
-    )
+# Show backup configuration status inside the portal, not above the login page.
+# This keeps the login screen clean and prevents unnecessary vertical scrolling.
+if st.session_state.logged_in:
+    if st.session_state.get("github_backup_notice"):
+        st.warning(st.session_state["github_backup_notice"])
+    elif not github_settings():
+        st.warning(
+            "GitHub backup is not configured. Comments currently rely on this app's local database; "
+            "configure Streamlit Secrets to enable persistent GitHub backups."
+        )
 
 
 # ----------------------------- Login ---------------------------------
@@ -522,9 +524,16 @@ if not st.session_state.logged_in:
         """
         <style>
         .block-container {
-            max-width: 1180px !important;
-            padding-top: 5vh !important;
-            padding-bottom: 4vh !important;
+            max-width: 1600px !important;
+            padding-top: 1.5vh !important;
+            padding-bottom: 1vh !important;
+        }
+        [data-testid="stMainBlockContainer"] {
+            min-height: 96vh;
+            box-sizing: border-box;
+        }
+        [data-testid="stVerticalBlock"] {
+            gap: 0.65rem;
         }
         .stApp {
             background:
@@ -543,8 +552,9 @@ if not st.session_state.logged_in:
         }
         .lg-panel {
             background:linear-gradient(145deg,#101b3f 0%,#202d68 55%,#3549a2 100%);
-            padding:48px 46px;
-            min-height:590px;
+            padding:clamp(24px,3vh,38px) clamp(24px,2.6vw,42px);
+            height:min(76vh,640px);
+            min-height:550px;
             color:#fff;
             position:relative;
             overflow:hidden;
@@ -587,7 +597,7 @@ if not st.session_state.logged_in:
             display:block;color:#cbd5ff;font-size:10px;font-weight:700;
             letter-spacing:2px;text-transform:uppercase;margin-top:3px;
         }
-        .lg-copy {position:relative;z-index:2;margin:52px 0 34px;}
+        .lg-copy {position:relative;z-index:2;margin:clamp(18px,2.4vh,30px) 0 clamp(14px,2vh,22px);}
         .lg-eyebrow {
             display:inline-flex;align-items:center;gap:8px;
             padding:7px 12px;border:1px solid rgba(255,255,255,.18);
@@ -600,8 +610,8 @@ if not st.session_state.logged_in:
             background:#fbbf24;box-shadow:0 0 12px rgba(251,191,36,.8);
         }
         .lg-h {
-            font-size:clamp(38px,4vw,53px);font-weight:800;
-            line-height:1.06;letter-spacing:-2px;margin:24px 0 18px;
+            font-size:clamp(34px,3.2vw,46px);font-weight:800;
+            line-height:1.06;letter-spacing:-1.6px;margin:16px 0 12px;
             max-width:440px;position:relative;z-index:2;
         }
         .lg-h span {
@@ -610,27 +620,27 @@ if not st.session_state.logged_in:
             -webkit-background-clip:text;background-clip:text;color:transparent;
         }
         .lg-p {
-            font-size:15px;line-height:1.8;color:#d6def8;
+            font-size:14px;line-height:1.6;color:#d6def8;
             max-width:390px;position:relative;z-index:2;margin:0;
         }
         .lg-list {
-            display:flex;flex-direction:column;gap:17px;
-            position:relative;z-index:2;margin-top:30px;
+            display:flex;flex-direction:column;gap:10px;
+            position:relative;z-index:2;margin-top:18px;
         }
         .lg-item {display:flex;align-items:center;gap:13px;font-size:13px;font-weight:600;color:#f8faff;}
         .lg-item i {
-            width:38px;height:38px;flex:none;border-radius:12px;
+            width:31px;height:31px;flex:none;border-radius:10px;
             background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.12);
             display:flex;align-items:center;justify-content:center;font-style:normal;font-size:17px;
         }
         .lg-panel-foot {
             position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.15);
-            padding-top:18px;color:#b9c5ef;font-size:11px;letter-spacing:.3px;
+            padding-top:12px;color:#b9c5ef;font-size:10px;letter-spacing:.3px;
         }
         .lg-form-wrap {
             box-sizing:border-box;background:transparent;
         }
-        .lg-form-top {margin-bottom:27px;}
+        .lg-form-top {margin-bottom:22px;}
         .lg-tag {
             font-size:11px;font-weight:800;letter-spacing:1.8px;
             text-transform:uppercase;color:#5868b5;margin-bottom:12px;
@@ -670,16 +680,37 @@ if not st.session_state.logged_in:
         }
         .lg-foot {
             text-align:center;color:#9aa3b8;font-size:11px;
-            line-height:1.6;margin-top:25px;
+            line-height:1.6;margin-top:18px;
         }
         .lg-foot strong {color:#6874b8;font-weight:700;}
+        @media (min-width: 851px) and (max-height: 820px) {
+            .lg-panel {height:74vh;min-height:520px;padding-top:22px;padding-bottom:22px;}
+            .lg-copy {margin-top:16px;margin-bottom:12px;}
+            .lg-h {font-size:clamp(32px,3vw,42px);margin:13px 0 10px;}
+            .lg-p {font-size:13px;line-height:1.5;}
+            .lg-list {margin-top:13px;gap:8px;}
+            .lg-item {font-size:12px;}
+            .lg-panel-foot {padding-top:10px;}
+            div[data-testid="column"]:has(.lg-form-top) {padding:28px 32px 22px;}
+            .lg-form-top {margin-bottom:16px;}
+            .lg-title {font-size:30px;}
+            .lg-foot {margin-top:12px;}
+        }
+        @media (min-width: 851px) and (max-height: 700px) {
+            .lg-panel {height:88vh;min-height:490px;padding:20px 30px;}
+            .lg-copy {margin:12px 0 10px;}
+            .lg-h {font-size:34px;margin:10px 0;}
+            .lg-list {margin-top:10px;gap:6px;}
+            .lg-item i {width:27px;height:27px;}
+            .lg-panel-foot {padding-top:8px;}
+        }
         @media (max-width: 850px) {
-            .block-container {padding:18px 14px 28px !important;}
+            .block-container {padding:14px 14px 20px !important;}
             div[data-testid="column"]:has(.lg-form-top) {padding:30px 24px 24px;border-radius:22px;}
-            .lg-panel {min-height:auto;padding:30px 28px;border-radius:22px;}
-            .lg-copy {margin:35px 0 25px;}
-            .lg-h {font-size:39px;letter-spacing:-1.4px;}
-            .lg-list {gap:10px;}
+            .lg-panel {height:auto;min-height:auto;padding:28px 26px;border-radius:22px;}
+            .lg-copy {margin:26px 0 20px;}
+            .lg-h {font-size:36px;letter-spacing:-1.2px;}
+            .lg-list {gap:9px;}
             .lg-panel-foot {margin-top:28px;}
             .lg-form-wrap {padding:36px 28px 30px;}
             .lg-title {font-size:30px;}
