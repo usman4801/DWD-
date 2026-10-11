@@ -14,7 +14,7 @@ import streamlit as st
 # ---------------------------------------------------------------------
 # QuessCorp | QuessConnect Portal
 # Run: streamlit run app.py
-# Keep DMD-DXB5-07102026.xlsx and image_2c8c24.png beside this file.
+# Keep DMD-DXB5-07102026.xlsx, image_2c8c24.png and login_bg.jpg beside this file.
 # Needs Streamlit 1.39 or newer (keyed containers are used for the card styling).
 # ---------------------------------------------------------------------
 
@@ -22,6 +22,7 @@ APP_DIR = Path(__file__).resolve().parent
 ROSTER_PATH = APP_DIR / "DMD-DXB5-07102026.xlsx"
 DB_PATH = APP_DIR / "quessconnect.db"
 LOGO_PATH = APP_DIR / "image_2c8c24.png"  # Quess Logo File
+LOGIN_BG_PATH = APP_DIR / "login_bg.jpg"  # Dubai skyline photo used on the login page
 SITE = "DXB5"
 MANAGEMENT_IDS = {"quesscorp", "javmuhak"}   # admins: can reply to and delete posts
 CATEGORIES = [
@@ -518,246 +519,187 @@ if st.session_state.logged_in:
 
 
 # ----------------------------- Login ---------------------------------
+LOGIN_CSS = """
+<style>
+.block-container, [data-testid="stMainBlockContainer"] {
+    max-width:100% !important; padding:0 !important;
+}
+.stApp {
+    background:
+        radial-gradient(circle at 96% 6%, rgba(147,180,255,.45), transparent 22%),
+        radial-gradient(circle at 100% 60%, rgba(186,210,255,.35), transparent 28%),
+        linear-gradient(160deg,#f7faff 0%,#eaf1fc 100%);
+}
+div[data-testid="stHorizontalBlock"] { gap:0 !important; }
+[data-testid="stVerticalBlock"] { gap:0 !important; }
+
+/* ---------- left: skyline panel ---------- */
+.lg-panel {
+    position:relative; box-sizing:border-box; min-height:100vh; overflow:hidden; color:#fff;
+    padding:clamp(28px,6.5vh,64px) clamp(26px,5vw,76px) 40px;
+    background-image: __BG__, linear-gradient(180deg,#012a5b 0%,#0b4390 62%,#e48a47 100%);
+    background-size:cover; background-position:center bottom; background-repeat:no-repeat;
+    border-radius:0 56px 56px 0;
+}
+.lg-brand { display:flex; align-items:center; gap:16px; }
+.lg-q { width:62px; height:62px; border-radius:50%; background:#fff; color:#0b2a63; font-weight:800;
+    font-size:38px; display:flex; align-items:center; justify-content:center; flex:none;
+    box-shadow:0 10px 26px rgba(0,0,0,.25); }
+.lg-brand b { font-size:clamp(26px,2.4vw,34px); font-weight:700; letter-spacing:-.5px; }
+.lg-tagline { margin-top:14px; font-size:clamp(11px,1vw,14px); font-weight:500; letter-spacing:.34em;
+    color:#d6e4ff; }
+.lg-h { margin:clamp(26px,6vh,64px) 0 clamp(14px,2.4vh,24px); font-size:clamp(46px,5.4vw,82px);
+    font-weight:800; line-height:1.0; letter-spacing:-2.5px; color:#fff; }
+.lg-h span { display:block; background:linear-gradient(90deg,#38c0fa,#2f7df6);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+.lg-p { max-width:520px; margin:0; font-size:clamp(15px,1.35vw,19px); line-height:1.55; color:#eaf1ff; }
+.lg-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; max-width:660px;
+    margin-top:clamp(24px,5vh,52px); }
+.lg-c { background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.2); border-radius:18px;
+    padding:18px 16px 16px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.lg-ic { width:46px; height:46px; border-radius:50%; background:#2f6fe8; display:flex; align-items:center;
+    justify-content:center; margin-bottom:14px; box-shadow:0 6px 16px rgba(20,60,160,.45); }
+.lg-ic svg { width:23px; height:23px; }
+.lg-c b { display:block; font-size:clamp(15px,1.3vw,18px); font-weight:700; margin-bottom:6px; }
+.lg-c span { display:block; font-size:clamp(12px,1vw,14px); line-height:1.45; color:#d5e3ff; }
+
+/* ---------- right: login card ---------- */
+.lg-top { position:fixed; top:26px; right:46px; z-index:5; display:flex; align-items:center; gap:18px;
+    font-size:13px; font-weight:600; letter-spacing:.2em; color:#25344f; }
+.lg-top i { width:1px; height:14px; background:#a9b7d0; display:block; }
+.st-key-login_card {
+    background:#fff !important; border:1px solid #e4ecf9 !important; border-radius:30px !important;
+    padding:clamp(28px,5vh,48px) clamp(24px,3vw,44px) clamp(22px,3.5vh,34px) !important;
+    box-shadow:0 30px 80px rgba(30,64,140,.16) !important;
+    max-width:560px; width:calc(100% - 48px); margin:0 auto; box-sizing:border-box;
+}
+.lg-tag { font-size:15px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#1d5fe0;
+    margin-bottom:10px; }
+.lg-title { font-size:clamp(36px,3.6vw,52px); font-weight:800; color:#0b1b3f; letter-spacing:-1.6px;
+    line-height:1.08; margin-bottom:16px; }
+.lg-sub { font-size:clamp(14px,1.2vw,17px); color:#5b6b8c; line-height:1.6; margin-bottom:clamp(18px,3.4vh,34px); }
+.lg-label { font-size:17px; font-weight:700; color:#0b1b3f; margin-bottom:10px; }
+.st-key-login_card [data-testid="stForm"] {
+    background:transparent !important; border:0 !important; border-radius:0 !important;
+    padding:0 !important; box-shadow:none !important;
+}
+.st-key-login_card div[data-baseweb="input"],
+.st-key-login_card div[data-baseweb="base-input"],
+.st-key-login_card div[data-baseweb="input"] > div {
+    background:transparent !important; border:0 !important; box-shadow:none !important;
+}
+.st-key-login_card input {
+    min-height:60px !important; border-radius:16px !important; font-size:16px !important; color:#0b1b3f !important;
+    border:1px solid #d3e0f4 !important; padding-left:70px !important;
+    background-color:#f6f9fe !important;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7fa6' stroke-width='1.8' stroke-linecap='round'><circle cx='12' cy='8' r='4'/><path d='M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5'/></svg>"),
+                     linear-gradient(#d3e0f4,#d3e0f4) !important;
+    background-repeat:no-repeat !important; background-position:22px center, 58px center !important;
+    background-size:24px 24px, 1px 28px !important;
+}
+.st-key-login_card input:focus { border-color:#3b82f6 !important; box-shadow:0 0 0 3px rgba(59,130,246,.16) !important; }
+.st-key-login_card input::placeholder { color:#8a9bb8 !important; }
+.st-key-login_card [data-testid="stForm"] button {
+    min-height:62px !important; border-radius:999px !important; border:0 !important; margin-top:6px;
+    background:linear-gradient(90deg,#0b4fd1,#3b8bff) !important; color:#fff !important;
+    box-shadow:0 14px 30px rgba(37,99,235,.35) !important; transition:transform .15s ease, box-shadow .15s ease;
+}
+.st-key-login_card [data-testid="stForm"] button p { color:#fff !important; font-size:18px !important; font-weight:700 !important; }
+.st-key-login_card [data-testid="stForm"] button:hover { transform:translateY(-1px); box-shadow:0 18px 34px rgba(37,99,235,.42) !important; }
+.lg-help { display:flex; align-items:center; gap:16px; margin:clamp(16px,3vh,28px) 0 14px; color:#5b6b8c; font-size:14px; }
+.lg-help:before, .lg-help:after { content:""; height:1px; background:#e3eaf6; flex:1; }
+.lg-hr { display:flex; align-items:center; gap:16px; background:#f1f6fd; border-radius:18px; padding:16px 20px;
+    font-size:16px; font-weight:600; color:#0b1b3f; }
+.lg-hr svg { flex:none; }
+.lg-hr i { width:1px; height:26px; background:#d3e0f4; display:block; }
+.lg-hr span { flex:1; }
+.lg-foot3 { position:fixed; bottom:22px; right:0; width:40vw; z-index:5; display:flex; justify-content:center;
+    align-items:center; gap:22px; }
+.lg-f { display:flex; align-items:center; gap:10px; font-size:13px; line-height:1.3; color:#4a5a78; }
+.lg-f svg { flex:none; }
+.lg-fl { width:1px; height:30px; background:#cbd6ea; display:block; }
+
+@media (max-width: 900px) {
+    .lg-panel { min-height:auto; border-radius:0 0 36px 36px; padding-bottom:36px; }
+    .lg-cards { grid-template-columns:1fr; }
+    .lg-top, .lg-foot3 { position:static; width:auto; justify-content:center; padding:14px 0; flex-wrap:wrap; }
+    .st-key-login_card { margin:24px auto; width:calc(100% - 32px); }
+}
+</style>
+"""
+
+ICON_CHAT = ("<svg viewBox='0 0 24 24' fill='#fff'><path d='M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'/>"
+             "<circle cx='8' cy='10' r='1.3' fill='#2f6fe8'/><circle cx='12' cy='10' r='1.3' fill='#2f6fe8'/>"
+             "<circle cx='16' cy='10' r='1.3' fill='#2f6fe8'/></svg>")
+ICON_PEOPLE = ("<svg viewBox='0 0 24 24' fill='#fff'><circle cx='9' cy='8' r='3.3'/><path d='M2.5 20c0-3.8 2.8-6 6.5-6s6.5 2.2 6.5 6z'/>"
+               "<circle cx='17' cy='9' r='2.5'/><path d='M16.5 14.2c3.2 0 5 1.8 5 4.8h-4.2c0-2-.4-3.6-1.5-4.6z'/></svg>")
+ICON_STAR = "<svg viewBox='0 0 24 24' fill='#fff'><polygon points='12,2 15,9 22,9.3 16.5,14 18.3,21 12,17 5.7,21 7.5,14 2,9.3 9,9'/></svg>"
+ICON_HEADSET = ("<svg width='26' height='26' viewBox='0 0 24 24' fill='none' stroke='#0b1b3f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'>"
+                "<path d='M4 14v-2a8 8 0 0 1 16 0v2'/><rect x='3' y='13' width='4' height='6' rx='1.5'/>"
+                "<rect x='17' y='13' width='4' height='6' rx='1.5'/><path d='M19 19c0 1.5-1.5 2.5-4 2.5h-2'/></svg>")
+ICON_CHEVRON = ("<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#0b1b3f' stroke-width='2' "
+                "stroke-linecap='round' stroke-linejoin='round'><path d='M9 5l7 7-7 7'/></svg>")
+ICON_SHIELD = ("<svg width='28' height='28' viewBox='0 0 24 24' fill='#1e3a8a'><path d='M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z'/>"
+               "<path d='M8.5 12l2.5 2.5 4.5-5' fill='none' stroke='#fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+ICON_LOCK = ("<svg width='28' height='28' viewBox='0 0 24 24' fill='#1e3a8a'><rect x='4' y='10' width='16' height='11' rx='2.5'/>"
+             "<path d='M8 10V7a4 4 0 0 1 8 0v3' fill='none' stroke='#1e3a8a' stroke-width='2.2' stroke-linecap='round'/>"
+             "<circle cx='12' cy='15.5' r='1.6' fill='#fff'/></svg>")
+ICON_TEAM = ("<svg width='30' height='30' viewBox='0 0 24 24' fill='#1e3a8a'><circle cx='12' cy='7.5' r='3'/><path d='M6 19c0-3.4 2.6-5.3 6-5.3s6 1.9 6 5.3z'/>"
+             "<circle cx='5' cy='9.5' r='2.2'/><path d='M0.8 18c0-2.6 1.7-4 4.2-4 .7 0 1.3.1 1.8.3-1.2 1-1.8 2.3-1.9 3.7z'/>"
+             "<circle cx='19' cy='9.5' r='2.2'/><path d='M23.2 18c0-2.6-1.7-4-4.2-4-.7 0-1.3.1-1.8.3 1.2 1 1.8 2.3 1.9 3.7z'/></svg>")
+
 if not st.session_state.logged_in:
 
-    st.markdown(
-        """
-        <style>
-        .block-container {
-            max-width: 1600px !important;
-            padding-top: 1.5vh !important;
-            padding-bottom: 1vh !important;
-        }
-        [data-testid="stMainBlockContainer"] {
-            min-height: 96vh;
-            box-sizing: border-box;
-        }
-        [data-testid="stVerticalBlock"] {
-            gap: 0.65rem;
-        }
-        .stApp {
-            background:
-                radial-gradient(circle at 8% 12%, rgba(99,102,241,.09), transparent 26%),
-                radial-gradient(circle at 92% 88%, rgba(14,165,233,.10), transparent 28%),
-                #f4f6fb;
-        }
-        div[data-testid="column"]:has(.lg-form-top) {
-            background:rgba(255,255,255,.98);
-            border:1px solid rgba(226,232,240,.9);
-            border-radius:28px;
-            padding:42px 38px 30px;
-            box-shadow:0 28px 80px rgba(31,41,85,.13);
-            align-self:stretch;
-            box-sizing:border-box;
-        }
-        .lg-panel {
-            background:linear-gradient(145deg,#101b3f 0%,#202d68 55%,#3549a2 100%);
-            padding:clamp(24px,3vh,38px) clamp(24px,2.6vw,42px);
-            height:min(76vh,640px);
-            min-height:550px;
-            color:#fff;
-            position:relative;
-            overflow:hidden;
-            display:flex;
-            flex-direction:column;
-            justify-content:space-between;
-            box-sizing:border-box;
-        }
-        .lg-panel:before {
-            content:"";
-            position:absolute;
-            width:410px;height:410px;
-            right:-165px;top:85px;
-            border-radius:50%;
-            border:1px solid rgba(255,255,255,.17);
-            box-shadow:0 0 0 34px rgba(255,255,255,.035),0 0 0 70px rgba(255,255,255,.025);
-        }
-        .lg-panel:after {
-            content:"";
-            position:absolute;
-            width:250px;height:250px;
-            left:-130px;bottom:-105px;
-            border-radius:50%;
-            background:linear-gradient(135deg,rgba(249,168,37,.65),rgba(249,168,37,0));
-            filter:blur(2px);
-        }
-        .lg-brand {
-            display:flex;align-items:center;gap:13px;
-            position:relative;z-index:2;
-        }
-        .lg-q {
-            width:48px;height:48px;border-radius:16px;
-            background:linear-gradient(145deg,#fff,#e7ecff);
-            color:#263c88;font-weight:900;font-size:27px;
-            display:flex;align-items:center;justify-content:center;
-            box-shadow:0 8px 22px rgba(0,0,0,.15);
-        }
-        .lg-brand b {font-size:22px;font-weight:800;letter-spacing:-.6px;}
-        .lg-brand small {
-            display:block;color:#cbd5ff;font-size:10px;font-weight:700;
-            letter-spacing:2px;text-transform:uppercase;margin-top:3px;
-        }
-        .lg-copy {position:relative;z-index:2;margin:clamp(18px,2.4vh,30px) 0 clamp(14px,2vh,22px);}
-        .lg-eyebrow {
-            display:inline-flex;align-items:center;gap:8px;
-            padding:7px 12px;border:1px solid rgba(255,255,255,.18);
-            background:rgba(255,255,255,.08);border-radius:999px;
-            color:#e0e7ff;font-size:11px;font-weight:700;letter-spacing:1.2px;
-            text-transform:uppercase;
-        }
-        .lg-eyebrow span {
-            display:inline-block;width:7px;height:7px;border-radius:50%;
-            background:#fbbf24;box-shadow:0 0 12px rgba(251,191,36,.8);
-        }
-        .lg-h {
-            font-size:clamp(34px,3.2vw,46px);font-weight:800;
-            line-height:1.06;letter-spacing:-1.6px;margin:16px 0 12px;
-            max-width:440px;position:relative;z-index:2;
-        }
-        .lg-h span {
-            display:block;
-            background:linear-gradient(90deg,#ffd166,#ffad42);
-            -webkit-background-clip:text;background-clip:text;color:transparent;
-        }
-        .lg-p {
-            font-size:14px;line-height:1.6;color:#d6def8;
-            max-width:390px;position:relative;z-index:2;margin:0;
-        }
-        .lg-list {
-            display:flex;flex-direction:column;gap:10px;
-            position:relative;z-index:2;margin-top:18px;
-        }
-        .lg-item {display:flex;align-items:center;gap:13px;font-size:13px;font-weight:600;color:#f8faff;}
-        .lg-item i {
-            width:31px;height:31px;flex:none;border-radius:10px;
-            background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.12);
-            display:flex;align-items:center;justify-content:center;font-style:normal;font-size:17px;
-        }
-        .lg-panel-foot {
-            position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.15);
-            padding-top:12px;color:#b9c5ef;font-size:10px;letter-spacing:.3px;
-        }
-        .lg-form-wrap {
-            box-sizing:border-box;background:transparent;
-        }
-        .lg-form-top {margin-bottom:22px;}
-        .lg-tag {
-            font-size:11px;font-weight:800;letter-spacing:1.8px;
-            text-transform:uppercase;color:#5868b5;margin-bottom:12px;
-        }
-        .lg-title {
-            font-size:34px;font-weight:800;color:#111a35;
-            letter-spacing:-1.2px;line-height:1.15;margin-bottom:12px;
-        }
-        .lg-sub {font-size:14px;color:#77819a;line-height:1.7;margin-bottom:0;}
-        .lg-label {
-            font-size:12px;font-weight:800;color:#27314f;
-            letter-spacing:.4px;margin-bottom:8px;
-        }
-        div[data-testid="stForm"]:has(input[autocomplete="username"]) {
-            background:transparent !important;border:0 !important;
-            border-radius:0 !important;padding:0 !important;box-shadow:none !important;
-        }
-        div[data-testid="stForm"] input {
-            min-height:50px !important;border-radius:12px !important;
-            background:#f7f8fc !important;border:1px solid #e4e8f2 !important;
-            padding-left:15px !important;color:#17203b !important;
-        }
-        div[data-testid="stForm"] input:focus {
-            border-color:#6978d1 !important;box-shadow:0 0 0 3px rgba(105,120,209,.12) !important;
-        }
-        div[data-testid="stForm"] button[kind="primaryFormSubmit"],
-        div[data-testid="stForm"] button[kind="primary"] {
-            min-height:51px !important;border-radius:12px !important;
-            background:linear-gradient(90deg,#ffad21,#ff9417) !important;
-            color:#fff !important;border:0 !important;font-size:14px !important;
-            font-weight:800 !important;box-shadow:0 9px 20px rgba(255,153,0,.22) !important;
-            transition:transform .15s ease,box-shadow .15s ease;
-        }
-        div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
-        div[data-testid="stForm"] button[kind="primary"]:hover {
-            transform:translateY(-1px);box-shadow:0 12px 24px rgba(255,153,0,.3) !important;
-        }
-        .lg-foot {
-            text-align:center;color:#9aa3b8;font-size:11px;
-            line-height:1.6;margin-top:18px;
-        }
-        .lg-foot strong {color:#6874b8;font-weight:700;}
-        @media (min-width: 851px) and (max-height: 820px) {
-            .lg-panel {height:74vh;min-height:520px;padding-top:22px;padding-bottom:22px;}
-            .lg-copy {margin-top:16px;margin-bottom:12px;}
-            .lg-h {font-size:clamp(32px,3vw,42px);margin:13px 0 10px;}
-            .lg-p {font-size:13px;line-height:1.5;}
-            .lg-list {margin-top:13px;gap:8px;}
-            .lg-item {font-size:12px;}
-            .lg-panel-foot {padding-top:10px;}
-            div[data-testid="column"]:has(.lg-form-top) {padding:28px 32px 22px;}
-            .lg-form-top {margin-bottom:16px;}
-            .lg-title {font-size:30px;}
-            .lg-foot {margin-top:12px;}
-        }
-        @media (min-width: 851px) and (max-height: 700px) {
-            .lg-panel {height:88vh;min-height:490px;padding:20px 30px;}
-            .lg-copy {margin:12px 0 10px;}
-            .lg-h {font-size:34px;margin:10px 0;}
-            .lg-list {margin-top:10px;gap:6px;}
-            .lg-item i {width:27px;height:27px;}
-            .lg-panel-foot {padding-top:8px;}
-        }
-        @media (max-width: 850px) {
-            .block-container {padding:14px 14px 20px !important;}
-            div[data-testid="column"]:has(.lg-form-top) {padding:30px 24px 24px;border-radius:22px;}
-            .lg-panel {height:auto;min-height:auto;padding:28px 26px;border-radius:22px;}
-            .lg-copy {margin:26px 0 20px;}
-            .lg-h {font-size:36px;letter-spacing:-1.2px;}
-            .lg-list {gap:9px;}
-            .lg-panel-foot {margin-top:28px;}
-            .lg-form-wrap {padding:36px 28px 30px;}
-            .lg-title {font-size:30px;}
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    bg_b64 = get_base64_image(LOGIN_BG_PATH)
+    bg_layer = f"url(data:image/jpeg;base64,{bg_b64})" if bg_b64 else "none"
+    st.markdown(LOGIN_CSS.replace("__BG__", bg_layer), unsafe_allow_html=True)
 
-    left, right = st.columns([1.02, .98], gap="medium", vertical_alignment="center")
+    left, right = st.columns([1.5, 1], gap="small", vertical_alignment="center")
     with left:
         st.markdown(
             "<div class='lg-panel'>"
-            "<div class='lg-brand'><div class='lg-q'>Q</div><div><b>QuessConnect</b><small>People • Feedback • Progress</small></div></div>"
-            "<div class='lg-copy'>"
-            "<div class='lg-eyebrow'><span></span> Your space to speak up</div>"
-            "<div class='lg-h'>Your voice matters.<span>Make it heard.</span></div>"
-            "<p class='lg-p'>A thoughtful, safe space for the DXB5 team to share feedback, raise concerns and celebrate the people making a difference.</p>"
-            "<div class='lg-list'>"
-            "<div class='lg-item'><i>✦</i><span>Share feedback openly or anonymously</span></div>"
-            "<div class='lg-item'><i>↗</i><span>Get responses from management</span></div>"
-            "<div class='lg-item'><i>♡</i><span>Support ideas that matter to the team</span></div>"
-            "</div></div>"
-            "<div class='lg-panel-foot'>A better workplace starts with a conversation.</div>"
-            "</div>",
+            "<div class='lg-brand'><div class='lg-q'>Q</div><b>QuessConnect</b></div>"
+            "<div class='lg-tagline'>PEOPLE &middot; FEEDBACK &middot; BETTER TOMORROW</div>"
+            "<div class='lg-h'>Your voice,<span>heard.</span></div>"
+            f"<p class='lg-p'>A safe space for the {SITE} team to share feedback, raise concerns and recognise great work.</p>"
+            "<div class='lg-cards'>"
+            f"<div class='lg-c'><div class='lg-ic'>{ICON_CHAT}</div><b>Speak Freely</b><span>Share your thoughts openly or anonymously.</span></div>"
+            f"<div class='lg-c'><div class='lg-ic'>{ICON_PEOPLE}</div><b>We Listen</b><span>Management reads and responds.</span></div>"
+            f"<div class='lg-c'><div class='lg-ic'>{ICON_STAR}</div><b>Make a Difference</b><span>Upvote what matters to you.</span></div>"
+            "</div></div>",
             unsafe_allow_html=True,
         )
 
     with right:
         st.markdown(
-            f"""<div class="lg-form-top">
-                <div class="lg-tag">Associate portal · {SITE}</div>
-                <div class="lg-title">Welcome back</div>
-                <div class="lg-sub">Sign in with your roster AMZ ID to continue to QuessConnect.</div>
-                </div>
-                <div class="lg-label">AMZ ID</div>""",
+            f"<div class='lg-top'><span>{SITE}</span><i></i><span>QuessConnect</span></div>",
             unsafe_allow_html=True,
         )
-
-        with st.form("login_form", clear_on_submit=False):
-            amz_input = st.text_input(
-                "AMZ ID", placeholder="e.g. your roster ID",
-                label_visibility="collapsed", autocomplete="username"
+        with st.container(key="login_card"):
+            st.markdown(
+                "<div class='lg-tag'>Associate login</div>"
+                "<div class='lg-title'>Welcome back</div>"
+                f"<div class='lg-sub'>Sign in with your roster AMZ ID to continue.<br>Site is set to {SITE}.</div>"
+                "<div class='lg-label'>AMZ ID</div>",
+                unsafe_allow_html=True,
             )
-            login_btn = st.form_submit_button("Continue  →", type="primary", use_container_width=True)
+            with st.form("login_form", clear_on_submit=False):
+                amz_input = st.text_input(
+                    "AMZ ID", placeholder="Enter your AMZ ID",
+                    label_visibility="collapsed", autocomplete="username"
+                )
+                login_btn = st.form_submit_button("Continue  →", type="primary", use_container_width=True)
+            st.markdown(
+                "<div class='lg-help'>Need help signing in?</div>"
+                f"<div class='lg-hr'>{ICON_HEADSET}<i></i><span>Contact HR Operations</span>{ICON_CHEVRON}</div>",
+                unsafe_allow_html=True,
+            )
         st.markdown(
-            "<div class='lg-foot'>Having trouble signing in?<br><strong>Contact HR Operations</strong></div>",
+            "<div class='lg-foot3'>"
+            f"<div class='lg-f'>{ICON_SHIELD}<span>Your feedback<br>is safe</span></div><i class='lg-fl'></i>"
+            f"<div class='lg-f'>{ICON_LOCK}<span>Confidential<br>and secure</span></div><i class='lg-fl'></i>"
+            f"<div class='lg-f'>{ICON_TEAM}<span>For a better<br>tomorrow</span></div>"
+            "</div>",
             unsafe_allow_html=True,
         )
 
