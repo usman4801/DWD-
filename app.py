@@ -2,6 +2,9 @@ import html
 import sqlite3
 import base64
 import hashlib
+import json
+import urllib.error
+import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -155,6 +158,187 @@ def db_connect():
     return conn
 
 
+# ----------------------- persistent GitHub backup -----------------------
+# Configure these values in Streamlit Cloud -> App settings -> Secrets:
+# [github]
+# token = "YOUR_FINE_GRAINED_TOKEN_WITH_CONTENTS_READ_WRITE"
+# repo = "YOUR_GITHUB_USERNAME/YOUR_PRIVATE_REPOSITORY"
+# branch = "main"
+# path = "data/quessconnect-backup.json"
+#
+# The private repository stores a JSON snapshot of comments, replies, statuses
+# and upvotes. Never hard-code the token in this file.
+def github_settings():
+    try:
+        cfg = st.secrets.get("github", {})
+        token = str(cfg.get("token", "")).strip()
+        repo = str(cfg.get("repo", "")).strip()
+        branch = str(cfg.get("branch", "main")).strip() or "main"
+        path = str(cfg.get("path", "data/quessconnect-backup.json")).strip().lstrip("/")
+        if token and repo and path:
+            return {"token": token, "repo": repo, "branch": branch, "path": path}
+    except Exception:
+        pass
+    return None
+
+
+def github_api_request(url, token, method="GET", payload=None):
+    body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        method=method,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "QuessConnect-Backup",
+            **({"Content-Type": "application/json"} if body is not None else {}),
+        },
+    )
+    with urllib.request.urlopen(req, timeout=15) as response:
+        raw = response.read().decode("utf-8")
+        return json.loads(raw) if raw else {}
+
+
+def github_backup_url(cfg):
+    from urllib.parse import quote
+    encoded_path = "/".join(quote(part, safe="") for part in cfg["path"].split("/"))
+    return (
+        f"https://api.github.com/repos/{cfg['repo']}/contents/{encoded_path}"
+        f"?ref={quote(cfg['branch'], safe='')}"
+    )
+
+
+def read_github_backup():
+    cfg = github_settings()
+    if not cfg:
+        return None
+    try:
+        remote = github_api_request(github_backup_url(cfg), cfg["token"])
+        encoded = "".join(str(remote.get("content", "")).split())
+        if not encoded:
+            return None
+        return json.loads(base64.b64decode(encoded).decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        st.session_state["github_backup_notice"] = (
+            f"GitHub backup could not be read (HTTP {exc.code}). Check the GitHub token, repository, branch and file permissions."
+        )
+    except Exception as exc:
+        st.session_state["github_backup_notice"] = f"GitHub backup could not be read: {exc}"
+    return None
+
+
+def save_github_backup():
+    cfg = github_settings()
+    if not cfg:
+        st.session_state["github_backup_notice"] = (
+            "GitHub backup is not configured. Comments are currently saved only in this app's local database."
+        )
+        return False
+    try:
+        with db_connect() as conn:
+            rows = conn.execute("SELECT * FROM complaints ORDER BY id").fetchall()
+            columns = [item["name"] for item in conn.execute("PRAGMA table_info(complaints)").fetchall()]
+        payload_data = {
+            "format_version": 1,
+            "updated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "complaints": [{column: row[column] for column in columns} for row in rows],
+        }
+        url = github_backup_url(cfg).split("?ref=", 1)[0]
+        sha = None
+        try:
+            current = github_api_request(github_backup_url(cfg), cfg["token"])
+            sha = current.get("sha")
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                raise
+
+        encoded_content = base64.b64encode(
+            json.dumps(payload_data, ensure_ascii=False, indent=2).encode("utf-8")
+        ).decode("ascii")
+        put_payload = {
+            "message": "Update QuessConnect comments backup",
+            "content": encoded_content,
+            "branch": cfg["branch"],
+        }
+        if sha:
+            put_payload["sha"] = sha
+        github_api_request(url, cfg["token"], method="PUT", payload=put_payload)
+        st.session_state["github_backup_notice"] = ""
+        st.session_state["github_backup_saved"] = True
+        return True
+    except Exception as exc:
+        st.session_state["github_backup_notice"] = (
+            f"GitHub backup failed: {exc}. The change may still be saved locally."
+        )
+        st.session_state["github_backup_saved"] = False
+        return False
+
+
+def restore_github_backup_if_needed():
+    """Restore the GitHub snapshot only when the local complaints table is empty."""
+    try:
+        with db_connect() as conn:
+            existing = conn.execute("SELECT COUNT(*) FROM complaints").fetchone()[0]
+        if existing:
+            return
+        backup = read_github_backup()
+        if not isinstance(backup, dict) or not isinstance(backup.get("complaints"), list):
+            return
+        with db_connect() as conn:
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(complaints)")}
+            allowed = [
+                "id", "amz_id", "employee_name", "site", "is_anonymous", "category",
+                "message", "status", "reply", "upvotes", "date", "reply_date"
+            ]
+            allowed = [column for column in allowed if column in columns]
+            for item in backup["complaints"]:
+                if not isinstance(item, dict):
+                    continue
+                values = [item.get(column) for column in allowed]
+                placeholders = ", ".join("?" for _ in allowed)
+                names = ", ".join(allowed)
+                conn.execute(
+                    f"INSERT OR REPLACE INTO complaints ({names}) VALUES ({placeholders})",
+                    values,
+                )
+        st.session_state["github_backup_notice"] = ""
+    except Exception as exc:
+        st.session_state["github_backup_notice"] = f"Could not restore comments from GitHub: {exc}"
+
+
+def initialize_github_backup_if_missing():
+    """Seed GitHub with existing local comments if no remote backup exists yet.
+
+    This prevents older local comments from being lost when GitHub backup is
+    configured for the first time. Never overwrites a remote file that exists.
+    """
+    cfg = github_settings()
+    if not cfg:
+        return
+    try:
+        with db_connect() as conn:
+            local_count = conn.execute("SELECT COUNT(*) FROM complaints").fetchone()[0]
+        if not local_count:
+            return
+        try:
+            github_api_request(github_backup_url(cfg), cfg["token"])
+            # A remote snapshot already exists: do not overwrite it on startup.
+            return
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                st.session_state["github_backup_notice"] = (
+                    f"Could not check the GitHub backup (HTTP {exc.code}); no data was overwritten."
+                )
+                return
+        save_github_backup()
+    except Exception as exc:
+        st.session_state["github_backup_notice"] = f"Could not initialize GitHub backup: {exc}"
+
+
 def init_db():
     with db_connect() as conn:
         conn.execute(
@@ -264,6 +448,7 @@ def card(key):
 def do_upvote(pid):
     with db_connect() as conn:
         conn.execute("UPDATE complaints SET upvotes = upvotes + 1 WHERE id = ?", (int(pid),))
+    save_github_backup()
 
 
 def open_reply(pid):
@@ -287,6 +472,7 @@ def do_delete(pid):
         return
     with db_connect() as conn:
         conn.execute("DELETE FROM complaints WHERE id = ?", (int(pid),))
+    save_github_backup()
     st.session_state.confirm_del = None
 
 
@@ -299,10 +485,15 @@ def save_reply(pid, text, status):
             "UPDATE complaints SET status = ?, reply = ?, reply_date = ? WHERE id = ?",
             (status, text, utc_now().strftime("%Y-%m-%d %H:%M:%S") if text else None, int(pid)),
         )
+    save_github_backup()
     st.session_state.reply_open = None
 
 
 init_db()
+if not st.session_state.get("github_restore_checked", False):
+    restore_github_backup_if_needed()
+    initialize_github_backup_if_missing()
+    st.session_state["github_restore_checked"] = True
 roster_df, roster_error = load_roster()
 
 if "logged_in" not in st.session_state:
@@ -314,6 +505,15 @@ if "logged_in" not in st.session_state:
 st.session_state.setdefault("reply_open", None)
 st.session_state.setdefault("confirm_del", None)
 
+# Visible warning lets the app owner know if remote persistence is not working.
+if st.session_state.get("github_backup_notice"):
+    st.warning(st.session_state["github_backup_notice"])
+elif not github_settings():
+    st.warning(
+        "GitHub backup is not configured yet. Comments may be lost if the app's local storage resets. "
+        "Add the GitHub settings shown in the app.py comments to enable persistent backups."
+    )
+
 
 # ----------------------------- Login ---------------------------------
 if not st.session_state.logged_in:
@@ -321,88 +521,237 @@ if not st.session_state.logged_in:
     st.markdown(
         """
         <style>
-        .block-container { max-width:1020px; padding-top:7vh !important; }
-        .lg-panel { background:linear-gradient(145deg,#003a6b 0%,#004b87 55%,#0a6cc4 100%); border-radius:20px;
-          padding:40px 38px; min-height:500px; color:#fff; position:relative; overflow:hidden;
-          box-shadow:0 18px 40px rgba(0,75,135,.25); }
-        .lg-panel:before { content:""; position:absolute; right:-90px; top:-90px; width:260px; height:260px;
-          border-radius:50%; background:rgba(255,255,255,.08); }
-        .lg-panel:after { content:""; position:absolute; left:-70px; bottom:-90px; width:230px; height:230px;
-          border-radius:50%; background:rgba(255,153,0,.22); }
-        .lg-brand { display:flex; align-items:center; gap:12px; position:relative; z-index:1; }
-        .lg-q { width:46px; height:46px; border-radius:50%; background:#fff; color:#004b87; font-weight:800;
-          font-size:26px; display:flex; align-items:center; justify-content:center; }
-        .lg-brand b { font-size:22px; font-weight:800; letter-spacing:-.3px; }
-        .lg-h { font-size:34px; font-weight:800; line-height:1.15; margin:46px 0 12px; position:relative; z-index:1; }
-        .lg-h span { color:#ffb84d; }
-        .lg-p { font-size:14.5px; line-height:1.6; color:#d6e6f7; max-width:330px; position:relative; z-index:1; }
-        .lg-list { margin-top:34px; display:flex; flex-direction:column; gap:14px; position:relative; z-index:1; }
-        .lg-item { display:flex; align-items:center; gap:12px; font-size:14px; font-weight:500; }
-        .lg-item i { width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.16);
-          display:flex; align-items:center; justify-content:center; font-style:normal; font-size:15px; }
-        .lg-tag { font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#004b87; margin-bottom:6px; }
-        .lg-title { font-size:28px; font-weight:800; color:#0f172a; letter-spacing:-.5px; margin-bottom:6px; }
-        .lg-sub { font-size:13.5px; color:#64748b; margin-bottom:22px; line-height:1.5; }
-        .lg-label { font-size:13px; font-weight:700; color:#0f172a; margin-bottom:6px; }
-        .lg-foot { font-size:12px; color:#94a3b8; text-align:center; margin-top:14px; }
+        .block-container {
+            max-width: 1180px !important;
+            padding-top: 5vh !important;
+            padding-bottom: 4vh !important;
+        }
+        .stApp {
+            background:
+                radial-gradient(circle at 8% 12%, rgba(99,102,241,.09), transparent 26%),
+                radial-gradient(circle at 92% 88%, rgba(14,165,233,.10), transparent 28%),
+                #f4f6fb;
+        }
+        div[data-testid="column"]:has(.lg-form-top) {
+            background:rgba(255,255,255,.98);
+            border:1px solid rgba(226,232,240,.9);
+            border-radius:28px;
+            padding:42px 38px 30px;
+            box-shadow:0 28px 80px rgba(31,41,85,.13);
+            align-self:stretch;
+            box-sizing:border-box;
+        }
+        .lg-panel {
+            background:linear-gradient(145deg,#101b3f 0%,#202d68 55%,#3549a2 100%);
+            padding:48px 46px;
+            min-height:590px;
+            color:#fff;
+            position:relative;
+            overflow:hidden;
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            box-sizing:border-box;
+        }
+        .lg-panel:before {
+            content:"";
+            position:absolute;
+            width:410px;height:410px;
+            right:-165px;top:85px;
+            border-radius:50%;
+            border:1px solid rgba(255,255,255,.17);
+            box-shadow:0 0 0 34px rgba(255,255,255,.035),0 0 0 70px rgba(255,255,255,.025);
+        }
+        .lg-panel:after {
+            content:"";
+            position:absolute;
+            width:250px;height:250px;
+            left:-130px;bottom:-105px;
+            border-radius:50%;
+            background:linear-gradient(135deg,rgba(249,168,37,.65),rgba(249,168,37,0));
+            filter:blur(2px);
+        }
+        .lg-brand {
+            display:flex;align-items:center;gap:13px;
+            position:relative;z-index:2;
+        }
+        .lg-q {
+            width:48px;height:48px;border-radius:16px;
+            background:linear-gradient(145deg,#fff,#e7ecff);
+            color:#263c88;font-weight:900;font-size:27px;
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:0 8px 22px rgba(0,0,0,.15);
+        }
+        .lg-brand b {font-size:22px;font-weight:800;letter-spacing:-.6px;}
+        .lg-brand small {
+            display:block;color:#cbd5ff;font-size:10px;font-weight:700;
+            letter-spacing:2px;text-transform:uppercase;margin-top:3px;
+        }
+        .lg-copy {position:relative;z-index:2;margin:52px 0 34px;}
+        .lg-eyebrow {
+            display:inline-flex;align-items:center;gap:8px;
+            padding:7px 12px;border:1px solid rgba(255,255,255,.18);
+            background:rgba(255,255,255,.08);border-radius:999px;
+            color:#e0e7ff;font-size:11px;font-weight:700;letter-spacing:1.2px;
+            text-transform:uppercase;
+        }
+        .lg-eyebrow span {
+            display:inline-block;width:7px;height:7px;border-radius:50%;
+            background:#fbbf24;box-shadow:0 0 12px rgba(251,191,36,.8);
+        }
+        .lg-h {
+            font-size:clamp(38px,4vw,53px);font-weight:800;
+            line-height:1.06;letter-spacing:-2px;margin:24px 0 18px;
+            max-width:440px;position:relative;z-index:2;
+        }
+        .lg-h span {
+            display:block;
+            background:linear-gradient(90deg,#ffd166,#ffad42);
+            -webkit-background-clip:text;background-clip:text;color:transparent;
+        }
+        .lg-p {
+            font-size:15px;line-height:1.8;color:#d6def8;
+            max-width:390px;position:relative;z-index:2;margin:0;
+        }
+        .lg-list {
+            display:flex;flex-direction:column;gap:17px;
+            position:relative;z-index:2;margin-top:30px;
+        }
+        .lg-item {display:flex;align-items:center;gap:13px;font-size:13px;font-weight:600;color:#f8faff;}
+        .lg-item i {
+            width:38px;height:38px;flex:none;border-radius:12px;
+            background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.12);
+            display:flex;align-items:center;justify-content:center;font-style:normal;font-size:17px;
+        }
+        .lg-panel-foot {
+            position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.15);
+            padding-top:18px;color:#b9c5ef;font-size:11px;letter-spacing:.3px;
+        }
+        .lg-form-wrap {
+            box-sizing:border-box;background:transparent;
+        }
+        .lg-form-top {margin-bottom:27px;}
+        .lg-tag {
+            font-size:11px;font-weight:800;letter-spacing:1.8px;
+            text-transform:uppercase;color:#5868b5;margin-bottom:12px;
+        }
+        .lg-title {
+            font-size:34px;font-weight:800;color:#111a35;
+            letter-spacing:-1.2px;line-height:1.15;margin-bottom:12px;
+        }
+        .lg-sub {font-size:14px;color:#77819a;line-height:1.7;margin-bottom:0;}
+        .lg-label {
+            font-size:12px;font-weight:800;color:#27314f;
+            letter-spacing:.4px;margin-bottom:8px;
+        }
+        div[data-testid="stForm"]:has(input[autocomplete="username"]) {
+            background:transparent !important;border:0 !important;
+            border-radius:0 !important;padding:0 !important;box-shadow:none !important;
+        }
+        div[data-testid="stForm"] input {
+            min-height:50px !important;border-radius:12px !important;
+            background:#f7f8fc !important;border:1px solid #e4e8f2 !important;
+            padding-left:15px !important;color:#17203b !important;
+        }
+        div[data-testid="stForm"] input:focus {
+            border-color:#6978d1 !important;box-shadow:0 0 0 3px rgba(105,120,209,.12) !important;
+        }
+        div[data-testid="stForm"] button[kind="primaryFormSubmit"],
+        div[data-testid="stForm"] button[kind="primary"] {
+            min-height:51px !important;border-radius:12px !important;
+            background:linear-gradient(90deg,#ffad21,#ff9417) !important;
+            color:#fff !important;border:0 !important;font-size:14px !important;
+            font-weight:800 !important;box-shadow:0 9px 20px rgba(255,153,0,.22) !important;
+            transition:transform .15s ease,box-shadow .15s ease;
+        }
+        div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+        div[data-testid="stForm"] button[kind="primary"]:hover {
+            transform:translateY(-1px);box-shadow:0 12px 24px rgba(255,153,0,.3) !important;
+        }
+        .lg-foot {
+            text-align:center;color:#9aa3b8;font-size:11px;
+            line-height:1.6;margin-top:25px;
+        }
+        .lg-foot strong {color:#6874b8;font-weight:700;}
+        @media (max-width: 850px) {
+            .block-container {padding:18px 14px 28px !important;}
+            div[data-testid="column"]:has(.lg-form-top) {padding:30px 24px 24px;border-radius:22px;}
+            .lg-panel {min-height:auto;padding:30px 28px;border-radius:22px;}
+            .lg-copy {margin:35px 0 25px;}
+            .lg-h {font-size:39px;letter-spacing:-1.4px;}
+            .lg-list {gap:10px;}
+            .lg-panel-foot {margin-top:28px;}
+            .lg-form-wrap {padding:36px 28px 30px;}
+            .lg-title {font-size:30px;}
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    left, right = st.columns([1.1, 1], gap="large", vertical_alignment="center")
+    left, right = st.columns([1.02, .98], gap="medium", vertical_alignment="center")
     with left:
         st.markdown(
             "<div class='lg-panel'>"
-            "<div class='lg-brand'><div class='lg-q'>Q</div><b>QuessConnect</b></div>"
-            "<div class='lg-h'>Your voice,<br><span>heard.</span></div>"
-            "<div class='lg-p'>A safe space for the DXB5 team to share feedback, raise concerns and recognise great work.</div>"
+            "<div class='lg-brand'><div class='lg-q'>Q</div><div><b>QuessConnect</b><small>People • Feedback • Progress</small></div></div>"
+            "<div class='lg-copy'>"
+            "<div class='lg-eyebrow'><span></span> Your space to speak up</div>"
+            "<div class='lg-h'>Your voice matters.<span>Make it heard.</span></div>"
+            "<p class='lg-p'>A thoughtful, safe space for the DXB5 team to share feedback, raise concerns and celebrate the people making a difference.</p>"
             "<div class='lg-list'>"
-            "<div class='lg-item'><i>💬</i>Post openly or anonymously</div>"
-            "<div class='lg-item'><i>🛡️</i>Management reads and responds</div>"
-            "<div class='lg-item'><i>👍</i>Upvote what matters to you</div>"
-            "</div></div>",
+            "<div class='lg-item'><i>✦</i><span>Share feedback openly or anonymously</span></div>"
+            "<div class='lg-item'><i>↗</i><span>Get responses from management</span></div>"
+            "<div class='lg-item'><i>♡</i><span>Support ideas that matter to the team</span></div>"
+            "</div></div>"
+            "<div class='lg-panel-foot'>A better workplace starts with a conversation.</div>"
+            "</div>",
             unsafe_allow_html=True,
         )
+
     with right:
-        with st.form("login_form", clear_on_submit=False):
-            st.markdown(
-                f"""<div>{login_logo if logo_b64 else ''}
-                <div class="lg-tag">Associate login</div>
+        st.markdown(
+            f"""<div class="lg-form-top">
+                <div class="lg-tag">Associate portal · {SITE}</div>
                 <div class="lg-title">Welcome back</div>
-                <div class="lg-sub">Sign in with your roster AMZ ID to continue. Site is set to {SITE}.</div>
-                <div class="lg-label">AMZ ID</div></div>""",
-                unsafe_allow_html=True,
-            )
+                <div class="lg-sub">Sign in with your roster AMZ ID to continue to QuessConnect.</div>
+                </div>
+                <div class="lg-label">AMZ ID</div>""",
+            unsafe_allow_html=True,
+        )
 
+        with st.form("login_form", clear_on_submit=False):
             amz_input = st.text_input(
-                "AMZ ID", placeholder="Enter your AMZ ID", label_visibility="collapsed", autocomplete="username"
+                "AMZ ID", placeholder="e.g. your roster ID",
+                label_visibility="collapsed", autocomplete="username"
             )
-            login_btn = st.form_submit_button("Continue", type="primary", use_container_width=True)
-            st.markdown("<div class='lg-foot'>Trouble signing in? Contact HR Operations.</div>", unsafe_allow_html=True)
+            login_btn = st.form_submit_button("Continue  →", type="primary", use_container_width=True)
+        st.markdown(
+            "<div class='lg-foot'>Having trouble signing in?<br><strong>Contact HR Operations</strong></div>",
+            unsafe_allow_html=True,
+        )
 
-        if login_btn:
-            amz_clean = str(amz_input).strip().lower()
-            if not amz_clean:
-                st.error("Please enter your AMZ ID.")
-            elif amz_clean in MANAGEMENT_IDS:
+    if login_btn:
+        amz_clean = str(amz_input).strip().lower()
+        if not amz_clean:
+            st.error("Please enter your AMZ ID.")
+        elif amz_clean in MANAGEMENT_IDS:
+            st.session_state.logged_in = True
+            st.session_state.amz_id = amz_clean
+            st.session_state.emp_name = "QuessCorp Management" if amz_clean == "quesscorp" else "Javmuhak"
+            st.session_state.site = SITE
+            st.rerun()
+        elif roster_df is None:
+            st.error(roster_error or "Roster could not be loaded.")
+        else:
+            matches = roster_df[roster_df["AMZ ID"].str.lower() == amz_clean]
+            if matches.empty:
+                st.error("AMZ ID not found in the roster.")
+            else:
                 st.session_state.logged_in = True
                 st.session_state.amz_id = amz_clean
-                st.session_state.emp_name = "QuessCorp Management" if amz_clean == "quesscorp" else "Javmuhak"
+                st.session_state.emp_name = str(matches.iloc[0]["Employee Name"])
                 st.session_state.site = SITE
                 st.rerun()
-            elif roster_df is None:
-                st.error(roster_error or "Roster could not be loaded.")
-            else:
-                matches = roster_df[roster_df["AMZ ID"].str.lower() == amz_clean]
-                if matches.empty:
-                    st.error("AMZ ID not found in the roster.")
-                else:
-                    st.session_state.logged_in = True
-                    st.session_state.amz_id = amz_clean
-                    st.session_state.emp_name = str(matches.iloc[0]["Employee Name"])
-                    st.session_state.site = SITE
-                    st.rerun()
 
 # ----------------------------- Portal / Feed --------------------------------
 else:
@@ -477,6 +826,7 @@ else:
                             0,
                         ),
                     )
+                save_github_backup()
                 st.session_state.show_form = False
                 st.rerun()
 
