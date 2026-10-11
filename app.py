@@ -552,7 +552,7 @@ st.session_state.setdefault("confirm_del", None)
 
 # Show backup configuration status inside the portal, not above the login page.
 # This keeps the login screen clean and prevents unnecessary vertical scrolling.
-if st.session_state.logged_in:
+if st.session_state.logged_in and is_management_user():     # employees never see backup messages
     if st.session_state.get("github_backup_notice"):
         st.warning(st.session_state["github_backup_notice"])
     elif not github_settings():
@@ -560,7 +560,7 @@ if st.session_state.logged_in:
             "GitHub backup is not configured. Comments currently rely on this app's local database; "
             "configure Streamlit Secrets to enable persistent GitHub backups."
         )
-    elif is_management_user():
+    else:
         _saved = sync_state().get("last_saved")
         st.caption("✅ GitHub backup is connected" + (f" · last saved {_saved} UTC" if _saved else ""))
 
