@@ -25,7 +25,8 @@ DB_PATH = APP_DIR / "quessconnect.db"
 LOGO_PATH = APP_DIR / "image_2c8c24.png"  # Quess Logo File
 LOGIN_BG_PATH = APP_DIR / "login_bg.jpg"  # Dubai skyline photo used on the login page
 SITE = "DXB5"
-MANAGEMENT_IDS = {"quesscorp", "javmuhak"}   # admins: can reply to and delete posts
+MANAGEMENT_IDS = {"quesscorp48", "javmuhak"}   # admins: can reply to and delete posts
+LEGACY_ADMIN_IDS = {"quesscorp"}   # old admin ID: not a login any more, only keeps its old posts shown as admin posts
 CATEGORIES = [
     "Payroll / Salary",
     "Transport / Attendance",
@@ -764,7 +765,7 @@ if not st.session_state.logged_in:
         elif amz_clean in MANAGEMENT_IDS:
             st.session_state.logged_in = True
             st.session_state.amz_id = amz_clean
-            st.session_state.emp_name = "QuessCorp Management" if amz_clean == "quesscorp" else "Javmuhak"
+            st.session_state.emp_name = "QuessCorp Management" if amz_clean == "quesscorp48" else "Javmuhak"
             st.session_state.site = SITE
             st.rerun()
         elif roster_df is None:
@@ -883,7 +884,7 @@ else:
             pid = int(post["id"])
             anonymous = int(post["is_anonymous"] or 0) == 1
             status = str(post["status"] or "Open")
-            is_post_mgmt = str(post["amz_id"]).lower() in MANAGEMENT_IDS
+            is_post_mgmt = str(post["amz_id"]).lower() in (MANAGEMENT_IDS | LEGACY_ADMIN_IDS)
             reply = str(post["reply"] or "").strip()
             upvotes = int(post["upvotes"] or 0)
 
